@@ -1,0 +1,164 @@
+PM HEALTH EFFECTS - PROJECT SETUP GUIDE (WINDOWS)
+=================================================
+
+PROJECT STRUCTURE:
+pm-health-project/
+├── backend/
+│   ├── main.py
+│   └── requirements.txt
+└── frontend/
+    ├── src/
+    │   ├── App.jsx
+    │   ├── App.css
+    │   ├── index.css
+    │   └── main.jsx
+    ├── index.html
+    ├── vite.config.js
+    └── package.json
+
+PREREQUISITES:
+==============
+1. Python 3.8+ (https://www.python.org/downloads/)
+2. Node.js 16+ (https://nodejs.org/)
+3. Git (optional, for version control)
+
+STEP 1: BACKEND SETUP (Python/FastAPI)
+======================================
+
+1. Open Command Prompt (cmd) or PowerShell
+2. Navigate to the backend folder:
+   cd path\to\pm-health-project\backend
+
+3. Create a virtual environment:
+   python -m venv venv
+
+4. Activate virtual environment:
+   venv\Scripts\activate
+   (On PowerShell, you might need: venv\Scripts\Activate.ps1)
+
+5. Install dependencies:
+   pip install -r requirements.txt
+
+6. Run the backend server:
+   python main.py
+
+   You should see:
+   INFO:     Uvicorn running on http://127.0.0.1:8000
+   INFO:     Application startup complete
+
+7. Test the API (keep this terminal open):
+   Open browser and go to: http://localhost:8000/docs
+   (You'll see Swagger UI with all API endpoints)
+
+STEP 2: FRONTEND SETUP (React/Vite)
+===================================
+
+1. Open a NEW Command Prompt/PowerShell window
+2. Navigate to the frontend folder:
+   cd path\to\pm-health-project\frontend
+
+3. Install dependencies:
+   npm install
+
+4. Start development server:
+   npm run dev
+
+   You should see:
+   VITE v... dev server running at:
+   ➜  Local:   http://localhost:5173/
+
+5. The app will automatically open in your browser
+   If not, visit: http://localhost:5173
+
+STEP 3: RUN THE COMPLETE APP
+============================
+
+Keep BOTH terminals running:
+- Terminal 1: Backend (python main.py) - Port 8000
+- Terminal 2: Frontend (npm run dev) - Port 5173
+
+The React app will communicate with FastAPI backend automatically.
+
+LOGIN CREDENTIALS (for testing):
+================================
+Name: Any name (e.g., "Rahul")
+Age Group: Select one of the options
+State: Select from dropdown
+PM Type: Toggle between PM2.5 and PM10
+
+FEATURES:
+=========
+✅ Login with name and age group
+✅ Select Indian state
+✅ Toggle between PM2.5 and PM10
+✅ Click on body parts to see health effects
+✅ View severity ratings for each effect
+✅ Responsive design
+
+DEPLOYMENT (Optional):
+======================
+
+BACKEND (Render.com):
+1. Create account on https://render.com
+2. Create new Web Service
+3. Connect GitHub repo
+4. Build command: pip install -r requirements.txt
+5. Start command: python main.py
+6. Set environment variables if needed
+7. Get URL like: https://pm-health-backend.onrender.com
+
+FRONTEND (Vercel.com):
+1. Create account on https://vercel.com
+2. Import GitHub repo
+3. Framework: Vite
+4. Environment variable:
+   VITE_API_URL=https://pm-health-backend.onrender.com
+5. Deploy
+
+Update CORS in backend main.py:
+allow_origins=["https://your-vercel-url.vercel.app"]
+
+TROUBLESHOOTING:
+================
+
+1. "Module not found" error:
+   - Make sure venv is activated
+   - Run: pip install -r requirements.txt
+
+2. Port 8000 already in use:
+   - Kill the process: netstat -ano | findstr :8000
+   - Then: taskkill /PID <PID> /F
+   - Or use different port in main.py
+
+3. CORS error in console:
+   - Ensure backend is running
+   - Check API_BASE_URL in frontend/src/App.jsx
+
+4. npm install fails:
+   - Clear cache: npm cache clean --force
+   - Try again: npm install
+
+5. Python not recognized:
+   - Install Python from https://www.python.org
+   - Restart cmd after installation
+   - Add Python to PATH if needed
+
+API ENDPOINTS:
+==============
+GET /                           - Root
+GET /states                     - List all states
+GET /body-parts                 - List all body parts
+GET /health-effects/{part}?pm_type=PM2.5  - Get health effects
+GET /state-pollution/{state}    - Get pollution levels
+GET /assessment                 - Get personalized assessment
+
+NEXT STEPS:
+===========
+1. Build and test locally
+2. Add more health data
+3. Implement user authentication (optional)
+4. Add PDF export feature
+5. Deploy to production
+
+For questions or issues, contact the development team.
+Happy coding! 🚀
