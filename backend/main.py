@@ -169,8 +169,8 @@ def read_root():
     return {"message": "PM2.5 & PM10 Health Effects API", "version": "1.0"}
 
 @app.get("/health-effects/{body_part}")
-def get_health_effects(body_part: str, pm_type: str = "PM2.5"):
-    """Get health effects for a specific body part and PM type"""
+def get_health_effects(body_part: str, pm_type: str = "PM2.5", age: str = None, state: str = None):
+    """Get health effects for a specific body part and PM type, adjusted for age and state"""
     if body_part not in health_database:
         return {"error": f"Body part '{body_part}' not found"}
     
@@ -178,11 +178,41 @@ def get_health_effects(body_part: str, pm_type: str = "PM2.5"):
         return {"error": "PM type must be PM2.5 or PM10"}
     
     effects = health_database[body_part].get(pm_type, [])
+    
+    # Age vulnerability multiplier
+    age_multiplier = {
+        "Children (0-12)": 1.5,
+        "Adolescents (13-19)": 1.0,
+        "Adults (20-65)": 1.0,
+        "Elderly (65+)": 1.5
+    }.get(age, 1.0)
+    
+    # State pollution multiplier
+    state_multiplier = 1.0
+    if state and state in state_pollution_data:
+        pollution_level = state_pollution_data[state].get(pm_type, 100)
+        state_multiplier = min(pollution_level / 100, 1.5)  # Cap at 1.5x
+    
+    # Apply multipliers to severity
+    adjusted_effects = []
+    for effect in effects:
+        adjusted_severity = min(
+            int(effect["severity"] * age_multiplier * state_multiplier),
+            5
+        )
+        adjusted_effects.append({
+            "name": effect["name"],
+            "desc": effect["desc"],
+            "severity": adjusted_severity
+        })
+    
     return {
         "body_part": body_part,
         "pm_type": pm_type,
-        "effects": effects,
-        "count": len(effects)
+        "age": age,
+        "state": state,
+        "effects": adjusted_effects,
+        "count": len(adjusted_effects)
     }
 
 @app.get("/body-parts")
