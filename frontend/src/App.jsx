@@ -27,6 +27,7 @@ function App() {
   const [effects, setEffects] = useState([])
   const [statePollution, setStatePollution] = useState({})
   const [loading, setLoading] = useState(false)
+  const [expandedEffect, setExpandedEffect] = useState(null)
 
   const sevChartRef = useRef(null)
   const stateChartRef = useRef(null)
@@ -114,6 +115,7 @@ function App() {
 
   const handleSelectBodyPart = (part) => {
     setSelectedPart(part)
+    setExpandedEffect(null)
     if (user) {
       fetchEffects(part, pmType, user.age, selectedState)
     }
@@ -408,9 +410,18 @@ function App() {
           <div className="right-panel">
             <div className="detail-card">
               {!selectedPart ? (
-                <div className="no-sel">Click an organ on the body diagram to see health effects</div>
+                <div className="no-sel">
+                  <span className="no-sel-icon">🫀</span>
+                  Click an organ on the body diagram to see health effects
+                </div>
               ) : loading ? (
-                <div className="no-sel">Loading...</div>
+                <div className="loading-skeleton">
+                  <div className="skeleton-line" style={{width:'60%'}}></div>
+                  <div className="skeleton-line" style={{width:'90%'}}></div>
+                  <div className="skeleton-line" style={{width:'75%'}}></div>
+                  <div className="skeleton-line" style={{width:'85%'}}></div>
+                  <div className="skeleton-line" style={{width:'55%'}}></div>
+                </div>
               ) : (
                 <>
                   <div className="part-header">
@@ -442,14 +453,50 @@ function App() {
                   </div>
                   <div className="effects-list">
                     {effects.map((e, idx) => (
-                      <div key={idx} className="effect-row">
-                        <div className="effect-name">{e.name}</div>
-                        <div className="effect-desc">{e.desc}</div>
+                      <div
+                        key={idx}
+                        className={`effect-row ${expandedEffect === idx ? 'expanded' : ''}`}
+                        onClick={() => setExpandedEffect(expandedEffect === idx ? null : idx)}
+                      >
+                        <div className="effect-row-header">
+                          <div>
+                            <div className="effect-name">{e.name}</div>
+                            <div className="effect-desc">{e.desc}</div>
+                          </div>
+                          <span className="effect-toggle">{expandedEffect === idx ? '▲' : '▼'}</span>
+                        </div>
                         <div className="sev-dots">
                           {[...Array(5)].map((_, i) => (
                             <div key={i} className={`sev-dot ${i < e.severity ? 'on' : ''}`}></div>
                           ))}
                         </div>
+                        {expandedEffect === idx && (
+                          <div className="effect-expanded">
+                            {e.details && (
+                              <div className="effect-detail-text">{e.details}</div>
+                            )}
+                            {e.symptoms && e.symptoms.length > 0 && (
+                              <div className="effect-section">
+                                <div className="effect-section-title">🩺 Symptoms</div>
+                                <ul className="effect-list">
+                                  {e.symptoms.map((s, i) => (
+                                    <li key={i}>{s}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {e.precautions && e.precautions.length > 0 && (
+                              <div className="effect-section">
+                                <div className="effect-section-title">🛡️ Precautions</div>
+                                <ul className="effect-list precaution-list">
+                                  {e.precautions.map((p, i) => (
+                                    <li key={i}>{p}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
