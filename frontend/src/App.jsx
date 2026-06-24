@@ -27,6 +27,7 @@ function App() {
   const [effects, setEffects] = useState([])
   const [statePollution, setStatePollution] = useState({})
   const [loading, setLoading] = useState(false)
+  const [expandedEffect, setExpandedEffect] = useState(null)
 
   const sevChartRef = useRef(null)
   const stateChartRef = useRef(null)
@@ -81,15 +82,8 @@ function App() {
   const fetchEffects = async (part, pm, age, state) => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({
-        pm_type: pm,
-        age: age || '',
-        state: state || ''
-      })
-      
-      const response = await axios.get(
-        `${API_BASE_URL}/health-effects/${encodeURIComponent(part)}?${params}`
-      )
+      const params = new URLSearchParams({ pm_type: pm, age: age || '', state: state || '' })
+      const response = await axios.get(`${API_BASE_URL}/health-effects/${encodeURIComponent(part)}?${params}`)
       setEffects(response.data.effects)
       setTimeout(() => renderSevChart(response.data.effects), 50)
     } catch (error) {
@@ -103,25 +97,28 @@ function App() {
   const handleLogin = (e) => {
     e.preventDefault()
     const name = e.target.name.value
-    const age = e.target.age.value
-    if (!name || !age) {
+    const ageNum = parseInt(e.target.age.value)
+    const state = e.target.state.value
+    if (!name || !ageNum || !state) {
       alert('Please fill in all fields')
       return
     }
-    setUser({ name, age })
+    let ageGroup = 'Adults (20-65)'
+    if (ageNum <= 12) ageGroup = 'Children (0-12)'
+    else if (ageNum <= 19) ageGroup = 'Adolescents (13-19)'
+    else if (ageNum >= 66) ageGroup = 'Elderly (65+)'
+    setSelectedState(state)
+    setUser({ name, age: ageGroup, ageNum })
     setPage('dashboard')
   }
 
   const handleSelectBodyPart = (part) => {
     setSelectedPart(part)
-    if (user) {
-      fetchEffects(part, pmType, user.age, selectedState)
-    }
+    setExpandedEffect(null)
+    if (user) fetchEffects(part, pmType, user.age, selectedState)
   }
 
-  const handlePMChange = (pm) => {
-    setPmType(pm)
-  }
+  const handlePMChange = (pm) => setPmType(pm)
 
   const handleLogout = () => {
     setUser(null)
@@ -137,17 +134,10 @@ function App() {
       type: 'bar',
       data: {
         labels: effectsData.map(e => e.name.length > 14 ? e.name.slice(0, 13) + '…' : e.name),
-        datasets: [{
-          label: 'Severity',
-          data: effectsData.map(e => e.severity),
-          backgroundColor: '#d97706',
-          borderRadius: 4
-        }]
+        datasets: [{ label: 'Severity', data: effectsData.map(e => e.severity), backgroundColor: '#d97706', borderRadius: 4 }]
       },
       options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
         scales: {
           x: { beginAtZero: true, max: 5, ticks: { color: '#5a7a68', stepSize: 1 }, grid: { color: '#e7f3ec' } },
           y: { ticks: { color: '#5a7a68', font: { size: 11 } }, grid: { display: false } }
@@ -164,22 +154,15 @@ function App() {
     const key = pmType === 'PM2.5' ? 'PM2.5' : 'PM10'
     const values = statesList.map(s => statePollution[s][key])
     const colors = statesList.map(s => s === selectedState ? '#15803d' : '#bfe0cc')
-
     if (stateChartInstance.current) stateChartInstance.current.destroy()
     stateChartInstance.current = new Chart(stateChartRef.current, {
       type: 'bar',
       data: {
         labels: statesList.map(s => s.length > 8 ? s.slice(0, 7) + '…' : s),
-        datasets: [{
-          label: pmType + ' level',
-          data: values,
-          backgroundColor: colors,
-          borderRadius: 4
-        }]
+        datasets: [{ label: pmType + ' level', data: values, backgroundColor: colors, borderRadius: 4 }]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         scales: {
           x: { ticks: { color: '#5a7a68', font: { size: 10 }, maxRotation: 45, autoSkip: false }, grid: { display: false } },
           y: { beginAtZero: true, ticks: { color: '#5a7a68' }, grid: { color: '#e7f3ec' } }
@@ -189,41 +172,54 @@ function App() {
     })
   }
 
+  const getAQIInfo = (v, type) => {
+    const thresholds = type === 'PM2.5' ? [30, 60, 90, 120, 250] : [50, 100, 150, 200, 400]
+    const labels = ['Good', 'Satisfactory', 'Moderate', 'Poor', 'Very Poor', 'Severe']
+    const colors = ['#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444', '#7c3aed']
+    for (let i = 0; i < thresholds.length; i++) {
+      if (v <= thresholds[i]) return { label: labels[i], color: colors[i] }
+    }
+    return { label: 'Severe', color: '#7c3aed' }
+  }
+
   const MAX_EFFECTS_TRACKED = 5
   const WHO_SAFE_LIMIT = { 'PM2.5': 60, 'PM10': 100 }
-
-  const avgSeverity = effects.length
-    ? (effects.reduce((s, e) => s + e.severity, 0) / effects.length).toFixed(1)
-    : 0
-
+  const avgSeverity = effects.length ? (effects.reduce((s, e) => s + e.severity, 0) / effects.length).toFixed(1) : 0
   const currentPMLevel = statePollution[selectedState]
-    ? (pmType === 'PM2.5' ? statePollution[selectedState]['PM2.5'] : statePollution[selectedState]['PM10'])
-    : '-'
+    ? (pmType === 'PM2.5' ? statePollution[selectedState]['PM2.5'] : statePollution[selectedState]['PM10']) : '-'
+
+  // AQI meter values
+  const aqiVal = statePollution[selectedState]?.[pmType] || 0
+  const aqiPct = Math.min((aqiVal / (pmType === 'PM2.5' ? 500 : 600)) * 100, 100)
+  const { label: aqiLabel, color: aqiColor } = getAQIInfo(aqiVal, pmType)
 
   if (page === 'login') {
     return (
       <div className="app">
         <div className="login-page">
           <div className="login-card">
-            <h1>Health risk assessment</h1>
-            <p>Enter your details to check PM2.5 & PM10 health impacts</p>
+            <div className="login-logo">🌬️</div>
+            <h1>PM Health Effects</h1>
+            <p>Enter your details to assess air pollution health risks</p>
             <form onSubmit={handleLogin}>
               <div className="form-group">
                 <label>Your name</label>
-                <input type="text" name="name" placeholder="e.g., Rahul" required />
+                <input type="text" name="name" placeholder="e.g., Rahul Sharma" required />
               </div>
               <div className="form-group">
-                <label>Age group</label>
-                <select name="age" required>
-                  <option value="">Select age group</option>
-                  <option value="Children (0-12)">Children (0-12)</option>
-                  <option value="Adolescents (13-19)">Adolescents (13-19)</option>
-                  <option value="Adults (20-65)">Adults (20-65)</option>
-                  <option value="Elderly (65+)">Elderly (65+)</option>
+                <label>Your age</label>
+                <input type="number" name="age" placeholder="e.g., 25" min="1" max="120" required />
+              </div>
+              <div className="form-group">
+                <label>Your state</label>
+                <select name="state" required>
+                  <option value="">Select your state</option>
+                  {states.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
-              <button type="submit" className="login-btn">Continue</button>
+              <button type="submit" className="login-btn">Check My Health Risk →</button>
             </form>
+            <div className="login-footer">🇮🇳 Covers 9 major Indian states · WHO guidelines</div>
           </div>
         </div>
       </div>
@@ -233,173 +229,201 @@ function App() {
   return (
     <div className="app">
       <div className="dash">
+
+        {/* TOP ROW */}
         <div className="top-row">
           <div className="welcome">
             <h2>Welcome, {user?.name}</h2>
-            <p>{user?.age}</p>
+            <p>{user?.age} · Age {user?.ageNum}</p>
           </div>
           <div className="controls">
-            <select
-              className="state-select"
-              value={selectedState}
-              onChange={(e) => setSelectedState(e.target.value)}
-            >
-              {states.map((state) => (
-                <option key={state} value={state}>{state}</option>
-              ))}
+            <select className="state-select" value={selectedState} onChange={(e) => setSelectedState(e.target.value)}>
+              {states.map((state) => <option key={state} value={state}>{state}</option>)}
             </select>
             <div className="pm-toggle">
-              <button
-                className={`pm-btn pm25 ${pmType === 'PM2.5' ? 'active' : ''}`}
-                onClick={() => handlePMChange('PM2.5')}
-              >
-                PM2.5
-              </button>
-              <button
-                className={`pm-btn pm10 ${pmType === 'PM10' ? 'active' : ''}`}
-                onClick={() => handlePMChange('PM10')}
-              >
-                PM10
-              </button>
+              <button className={`pm-btn pm25 ${pmType === 'PM2.5' ? 'active' : ''}`} onClick={() => handlePMChange('PM2.5')}>PM2.5</button>
+              <button className={`pm-btn pm10 ${pmType === 'PM10' ? 'active' : ''}`} onClick={() => handlePMChange('PM10')}>PM10</button>
             </div>
             <button className="logout-btn" onClick={handleLogout}>Logout</button>
           </div>
         </div>
 
+        {/* AQI METER */}
+        <div className="aqi-card">
+          <div className="aqi-left">
+            <div className="aqi-title">Air Quality — {selectedState}</div>
+            <div className="aqi-value" style={{ color: aqiColor }}>{aqiVal} <span className="aqi-unit">µg/m³</span></div>
+            <div className="aqi-badge" style={{ background: aqiColor + '22', color: aqiColor, border: `1px solid ${aqiColor}` }}>
+              ● {aqiLabel}
+            </div>
+          </div>
+          <div className="aqi-right">
+            <div className="aqi-bar-labels">
+              <span>Good</span><span>Moderate</span><span>Poor</span><span>Severe</span>
+            </div>
+            <div className="aqi-bar-track">
+              <div className="aqi-bar-marker" style={{ left: `${aqiPct}%` }}></div>
+            </div>
+            <div className="aqi-segments">
+              <div style={{ background: '#22c55e' }}></div>
+              <div style={{ background: '#84cc16' }}></div>
+              <div style={{ background: '#eab308' }}></div>
+              <div style={{ background: '#f97316' }}></div>
+              <div style={{ background: '#ef4444' }}></div>
+              <div style={{ background: '#7c3aed' }}></div>
+            </div>
+            <div className="aqi-who">
+              WHO safe limit for {pmType}: <strong>{WHO_SAFE_LIMIT[pmType]} µg/m³</strong>
+              {aqiVal > WHO_SAFE_LIMIT[pmType] && (
+                <span className="who-exceeded"> · exceeded by {aqiVal - WHO_SAFE_LIMIT[pmType]} µg/m³</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* MAIN GRID */}
         <div className="main-grid">
           <div className="body-panel">
             <h3>Select organ</h3>
             <div className="body-svg-wrap">
-              <svg viewBox="0 0 240 520" xmlns="http://www.w3.org/2000/svg">
-
-                {/* HEAD */}
-                <ellipse cx="120" cy="38" rx="28" ry="32" fill="#f5d9b8" stroke="#d9a876" strokeWidth="1"/>
-                {/* Hair */}
-                <ellipse cx="120" cy="16" rx="28" ry="15" fill="#7a4a2a"/>
-                <ellipse cx="95" cy="26" rx="9" ry="14" fill="#7a4a2a"/>
-                <ellipse cx="145" cy="26" rx="9" ry="14" fill="#7a4a2a"/>
-                {/* Eyes */}
-                <ellipse cx="110" cy="36" rx="5" ry="4" fill="#e8c89a" stroke="#c9966a" strokeWidth="0.7"/>
-                <ellipse cx="130" cy="36" rx="5" ry="4" fill="#e8c89a" stroke="#c9966a" strokeWidth="0.7"/>
-                {/* Nose */}
-                <path d="M117 42 Q120 48 123 42" fill="none" stroke="#c9966a" strokeWidth="0.7"/>
-                {/* Mouth */}
-                <path d="M113 52 Q120 57 127 52" fill="none" stroke="#c9966a" strokeWidth="0.8"/>
-                {/* Ears */}
-                <ellipse cx="92" cy="42" rx="4" ry="7" fill="#f5d9b8" stroke="#d9a876" strokeWidth="0.7"/>
-                <ellipse cx="148" cy="42" rx="4" ry="7" fill="#f5d9b8" stroke="#d9a876" strokeWidth="0.7"/>
-
-                {/* NECK */}
-                <rect x="109" y="68" width="22" height="18" rx="3" fill="#f5d9b8" stroke="#d9a876" strokeWidth="0.8"/>
-
-                {/* TORSO */}
-                <path d="M60 86 Q48 92 46 120 L44 185 Q43 205 54 210 L74 214 L72 265 L168 265 L166 214 L186 210 Q197 205 196 185 L194 120 Q192 92 180 86 Z" fill="#f0c9a0" stroke="#d9a876" strokeWidth="1.2"/>
-                {/* Rib lines left */}
-                <path d="M62 105 Q85 100 110 102" fill="none" stroke="#d9a876" strokeWidth="0.6" opacity="0.5"/>
-                <path d="M61 117 Q85 112 110 114" fill="none" stroke="#d9a876" strokeWidth="0.6" opacity="0.5"/>
-                <path d="M60 129 Q85 125 110 126" fill="none" stroke="#d9a876" strokeWidth="0.6" opacity="0.5"/>
-                <path d="M60 141 Q85 137 110 138" fill="none" stroke="#d9a876" strokeWidth="0.6" opacity="0.5"/>
-                <path d="M61 153 Q85 150 110 151" fill="none" stroke="#d9a876" strokeWidth="0.6" opacity="0.5"/>
-                {/* Rib lines right */}
-                <path d="M178 105 Q155 100 130 102" fill="none" stroke="#d9a876" strokeWidth="0.6" opacity="0.5"/>
-                <path d="M179 117 Q155 112 130 114" fill="none" stroke="#d9a876" strokeWidth="0.6" opacity="0.5"/>
-                <path d="M180 129 Q155 125 130 126" fill="none" stroke="#d9a876" strokeWidth="0.6" opacity="0.5"/>
-                <path d="M180 141 Q155 137 130 138" fill="none" stroke="#d9a876" strokeWidth="0.6" opacity="0.5"/>
-                <path d="M179 153 Q155 150 130 151" fill="none" stroke="#d9a876" strokeWidth="0.6" opacity="0.5"/>
-                {/* Sternum */}
-                <line x1="120" y1="88" x2="120" y2="172" stroke="#d9a876" strokeWidth="0.8" opacity="0.4"/>
-                {/* Belly button */}
-                <circle cx="120" cy="232" r="3" fill="none" stroke="#c9966a" strokeWidth="1"/>
-
-                {/* ARMS */}
-                {/* Left arm */}
-                <path d="M49 90 Q32 95 28 130 Q26 155 32 165 Q38 173 46 170 Q54 166 54 148 L54 110" fill="#f0c9a0" stroke="#d9a876" strokeWidth="0.9"/>
-                <path d="M32 165 Q26 185 24 210 Q22 228 28 236 Q34 242 40 238 Q46 234 46 220 L46 188" fill="#f0c9a0" stroke="#d9a876" strokeWidth="0.9"/>
-                <ellipse cx="30" cy="244" rx="9" ry="11" fill="#f5d9b8" stroke="#d9a876" strokeWidth="0.8"/>
-                {/* Right arm */}
-                <path d="M191 90 Q208 95 212 130 Q214 155 208 165 Q202 173 194 170 Q186 166 186 148 L186 110" fill="#f0c9a0" stroke="#d9a876" strokeWidth="0.9"/>
-                <path d="M208 165 Q214 185 216 210 Q218 228 212 236 Q206 242 200 238 Q194 234 194 220 L194 188" fill="#f0c9a0" stroke="#d9a876" strokeWidth="0.9"/>
-                <ellipse cx="210" cy="244" rx="9" ry="11" fill="#f5d9b8" stroke="#d9a876" strokeWidth="0.8"/>
-
-                {/* PELVIS */}
-                <path d="M54 210 Q44 220 44 245 Q44 260 62 264 L178 264 Q196 260 196 245 Q196 220 186 210 Z" fill="#e8b890" stroke="#d9a876" strokeWidth="0.9"/>
-
-                {/* LEGS */}
-                {/* Left leg */}
-                <path d="M76 262 Q68 282 68 315 Q67 338 76 344 Q84 348 90 342 Q96 336 94 312 L92 275" fill="#f0c9a0" stroke="#d9a876" strokeWidth="0.9"/>
-                <ellipse cx="82" cy="350" rx="12" ry="8" fill="#e8c89a" stroke="#d9a876" strokeWidth="0.7"/>
-                <path d="M72 356 Q68 382 68 408 Q67 424 76 428 Q84 431 90 425 Q95 419 94 406 L92 372" fill="#f0c9a0" stroke="#d9a876" strokeWidth="0.9"/>
-                <ellipse cx="80" cy="436" rx="13" ry="7" fill="#f5d9b8" stroke="#d9a876" strokeWidth="0.8"/>
-                {/* Right leg */}
-                <path d="M164 262 Q172 282 172 315 Q173 338 164 344 Q156 348 150 342 Q144 336 146 312 L148 275" fill="#f0c9a0" stroke="#d9a876" strokeWidth="0.9"/>
-                <ellipse cx="158" cy="350" rx="12" ry="8" fill="#e8c89a" stroke="#d9a876" strokeWidth="0.7"/>
-                <path d="M168 356 Q172 382 172 408 Q173 424 164 428 Q156 431 150 425 Q145 419 146 406 L148 372" fill="#f0c9a0" stroke="#d9a876" strokeWidth="0.9"/>
-                <ellipse cx="160" cy="436" rx="13" ry="7" fill="#f5d9b8" stroke="#d9a876" strokeWidth="0.8"/>
-
-                {/* ===== CLICKABLE ORGANS ===== */}
+              <svg viewBox="0 0 240 530" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <radialGradient id="skinHead" cx="45%" cy="38%" r="55%"><stop offset="0%" stopColor="#f5d0a0"/><stop offset="60%" stopColor="#e8b87a"/><stop offset="100%" stopColor="#c9904a"/></radialGradient>
+                  <radialGradient id="skinTorso" cx="40%" cy="30%" r="65%"><stop offset="0%" stopColor="#f0c48a"/><stop offset="55%" stopColor="#e0a860"/><stop offset="100%" stopColor="#c08040"/></radialGradient>
+                  <radialGradient id="skinLimb" cx="30%" cy="25%" r="65%"><stop offset="0%" stopColor="#f0c48a"/><stop offset="70%" stopColor="#d49850"/><stop offset="100%" stopColor="#b07830"/></radialGradient>
+                  <radialGradient id="gradBrain" cx="35%" cy="30%" r="60%"><stop offset="0%" stopColor="#d4baff"/><stop offset="60%" stopColor="#9d6fe8"/><stop offset="100%" stopColor="#6b3fbb"/></radialGradient>
+                  <radialGradient id="gradLung" cx="30%" cy="25%" r="65%"><stop offset="0%" stopColor="#a8d8f8"/><stop offset="60%" stopColor="#4fa8e8"/><stop offset="100%" stopColor="#1a6fbb"/></radialGradient>
+                  <radialGradient id="gradHeart" cx="35%" cy="30%" r="60%"><stop offset="0%" stopColor="#ff9090"/><stop offset="55%" stopColor="#e84040"/><stop offset="100%" stopColor="#aa1010"/></radialGradient>
+                  <radialGradient id="gradLiver" cx="30%" cy="28%" r="60%"><stop offset="0%" stopColor="#e8a860"/><stop offset="55%" stopColor="#b86820"/><stop offset="100%" stopColor="#804010"/></radialGradient>
+                  <radialGradient id="gradStomach" cx="30%" cy="28%" r="60%"><stop offset="0%" stopColor="#ffe090"/><stop offset="55%" stopColor="#e8a820"/><stop offset="100%" stopColor="#a07010"/></radialGradient>
+                  <radialGradient id="gradKidney" cx="30%" cy="28%" r="60%"><stop offset="0%" stopColor="#c8a8f8"/><stop offset="55%" stopColor="#8050d0"/><stop offset="100%" stopColor="#5030a0"/></radialGradient>
+                  <radialGradient id="gradIntestine" cx="30%" cy="28%" r="60%"><stop offset="0%" stopColor="#f8a8c8"/><stop offset="55%" stopColor="#d84888"/><stop offset="100%" stopColor="#a02060"/></radialGradient>
+                  <radialGradient id="gradSkin" cx="30%" cy="25%" r="60%"><stop offset="0%" stopColor="#80f0c0"/><stop offset="55%" stopColor="#20a870"/><stop offset="100%" stopColor="#107040"/></radialGradient>
+                  <radialGradient id="gradBone" cx="30%" cy="25%" r="60%"><stop offset="0%" stopColor="#e8dfc0"/><stop offset="55%" stopColor="#b8a870"/><stop offset="100%" stopColor="#887840"/></radialGradient>
+                </defs>
+                <path d="M55 102 Q34 108 30 142 Q28 162 34 172 Q40 178 48 173 L52 130 Z" fill="#c08040" opacity="0.45"/>
+                <path d="M53 100 Q32 106 28 140 Q26 160 32 170 Q38 176 46 171 L50 128 Z" fill="url(#skinLimb)"/>
+                <path d="M34 172 Q28 190 26 212 Q25 228 30 234 Q36 240 42 236 L44 220 L44 195 Z" fill="#c08040" opacity="0.4"/>
+                <path d="M32 170 Q26 188 24 210 Q23 226 28 232 Q34 238 40 234 Q46 229 44 216 L44 192 Z" fill="url(#skinLimb)"/>
+                <ellipse cx="30" cy="242" rx="9" ry="12" fill="url(#skinHead)" stroke="#c08040" strokeWidth="0.7"/>
+                <path d="M187 102 Q208 108 212 142 Q214 162 208 172 Q202 178 194 173 L190 130 Z" fill="#c08040" opacity="0.45"/>
+                <path d="M185 100 Q206 106 210 140 Q212 160 206 170 Q200 176 192 171 L188 128 Z" fill="url(#skinLimb)"/>
+                <path d="M206 170 Q212 188 214 210 Q215 226 210 232 Q204 238 198 234 Q192 229 194 216 L194 192 Z" fill="url(#skinLimb)"/>
+                <ellipse cx="208" cy="242" rx="9" ry="12" fill="url(#skinHead)" stroke="#c08040" strokeWidth="0.7"/>
+                <path d="M126 88 Q162 92 170 110 L174 188 Q172 212 162 218 L152 222 L154 258 L132 264 Z" fill="#c08040" opacity="0.3"/>
+                <path d="M60 106 Q50 112 50 136 L50 192 Q52 214 64 220 L78 224 L80 260 L160 260 L162 224 L176 220 Q188 214 190 192 L190 136 Q190 112 180 106 Q155 98 120 96 Q85 98 60 106 Z" fill="url(#skinTorso)" stroke="#c08040" strokeWidth="0.8"/>
+                <path d="M62 118 Q90 112 120 114 Q150 112 178 118" fill="none" stroke="#c08040" strokeWidth="0.6" opacity="0.45"/>
+                <path d="M61 130 Q90 124 120 126 Q150 124 179 130" fill="none" stroke="#c08040" strokeWidth="0.6" opacity="0.45"/>
+                <path d="M61 142 Q90 136 120 138 Q150 136 179 142" fill="none" stroke="#c08040" strokeWidth="0.6" opacity="0.45"/>
+                <path d="M61 154 Q90 149 120 150 Q150 149 179 154" fill="none" stroke="#c08040" strokeWidth="0.6" opacity="0.45"/>
+                <path d="M62 166 Q90 162 120 163 Q150 162 178 166" fill="none" stroke="#c08040" strokeWidth="0.6" opacity="0.45"/>
+                <line x1="120" y1="104" x2="120" y2="184" stroke="#c08040" strokeWidth="0.8" opacity="0.35"/>
+                <ellipse cx="120" cy="228" rx="4" ry="3" fill="none" stroke="#b07030" strokeWidth="1"/>
+                <path d="M74 220 Q56 230 56 252 Q57 266 72 270 L168 270 Q183 266 184 252 Q184 230 166 220 Z" fill="url(#skinTorso)" stroke="#c08040" strokeWidth="0.8"/>
+                <path d="M106 268 Q100 288 100 322 Q99 344 108 350 L114 344 L114 284 Z" fill="#b07030" opacity="0.4"/>
+                <path d="M96 266 Q86 288 86 324 Q85 348 96 354 Q106 358 112 350 Q118 342 116 320 L118 280 Z" fill="url(#skinLimb)"/>
+                <ellipse cx="100" cy="360" rx="13" ry="9" fill="url(#skinHead)" stroke="#c08040" strokeWidth="0.7"/>
+                <path d="M88 368 Q84 398 84 428 Q83 444 92 448 Q100 452 106 444 Q111 436 108 422 L110 382 Z" fill="url(#skinLimb)"/>
+                <ellipse cx="96" cy="456" rx="15" ry="7" fill="url(#skinHead)" stroke="#c08040" strokeWidth="0.7"/>
+                <path d="M136 268 Q142 288 142 322 Q143 344 134 350 L128 344 L128 284 Z" fill="#b07030" opacity="0.4"/>
+                <path d="M144 266 Q154 288 154 324 Q155 348 144 354 Q134 358 128 350 Q122 342 124 320 L122 280 Z" fill="url(#skinLimb)"/>
+                <ellipse cx="142" cy="360" rx="13" ry="9" fill="url(#skinHead)" stroke="#c08040" strokeWidth="0.7"/>
+                <path d="M152 368 Q156 398 156 428 Q157 444 148 448 Q140 452 134 444 Q129 436 132 422 L130 382 Z" fill="url(#skinLimb)"/>
+                <ellipse cx="146" cy="456" rx="15" ry="7" fill="url(#skinHead)" stroke="#c08040" strokeWidth="0.7"/>
+                <rect x="110" y="80" width="20" height="20" rx="4" fill="url(#skinLimb)" stroke="#c08040" strokeWidth="0.7"/>
+                <line x1="116" y1="82" x2="114" y2="98" stroke="#b07030" strokeWidth="0.7" opacity="0.5"/>
+                <line x1="124" y1="82" x2="126" y2="98" stroke="#b07030" strokeWidth="0.7" opacity="0.5"/>
+                <ellipse cx="124" cy="52" rx="28" ry="30" fill="#c08040" opacity="0.35"/>
+                <ellipse cx="120" cy="50" rx="30" ry="32" fill="url(#skinHead)" stroke="#c08040" strokeWidth="0.8"/>
+                <ellipse cx="120" cy="24" rx="30" ry="14" fill="#4a2e10"/>
+                <ellipse cx="94" cy="32" rx="10" ry="14" fill="#4a2e10"/>
+                <ellipse cx="146" cy="32" rx="10" ry="14" fill="#4a2e10"/>
+                <ellipse cx="90" cy="52" rx="5" ry="8" fill="url(#skinHead)" stroke="#c08040" strokeWidth="0.7"/>
+                <ellipse cx="150" cy="52" rx="5" ry="8" fill="url(#skinHead)" stroke="#c08040" strokeWidth="0.7"/>
+                <ellipse cx="110" cy="46" rx="6" ry="4" fill="#2a1a0a"/>
+                <ellipse cx="130" cy="46" rx="6" ry="4" fill="#2a1a0a"/>
+                <circle cx="108" cy="45" r="1.5" fill="white" opacity="0.7"/>
+                <circle cx="128" cy="45" r="1.5" fill="white" opacity="0.7"/>
+                <path d="M117 54 Q120 60 123 54" fill="none" stroke="#b07030" strokeWidth="0.9"/>
+                <path d="M113 64 Q120 69 127 64" fill="none" stroke="#b07030" strokeWidth="0.9"/>
 
                 {/* BRAIN */}
                 <g className={`organ ${selectedPart === 'Brain & Head' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Brain & Head')}>
-                  <ellipse cx="120" cy="30" rx="18" ry="14" fill="#c4a8e8" stroke="#8b5cf6" strokeWidth="1.2" opacity="0.9"/>
-                  <path d="M108 28 Q114 22 120 25 Q126 22 132 28" fill="none" stroke="#7c3aed" strokeWidth="0.7"/>
-                  <path d="M106 34 Q112 28 120 31 Q128 28 134 34" fill="none" stroke="#7c3aed" strokeWidth="0.7"/>
-                  <line x1="120" y1="18" x2="120" y2="42" stroke="#7c3aed" strokeWidth="0.6"/>
+                  <ellipse cx="122" cy="34" rx="17" ry="13" fill="#6b3fbb" opacity="0.3"/>
+                  <ellipse cx="120" cy="32" rx="18" ry="14" fill="url(#gradBrain)" stroke="#7030c0" strokeWidth="1"/>
+                  <path d="M108 29 Q114 22 120 26 Q126 22 132 29" fill="none" stroke="#6030b0" strokeWidth="0.8"/>
+                  <path d="M106 35 Q112 28 120 32 Q128 28 134 35" fill="none" stroke="#6030b0" strokeWidth="0.8"/>
+                  <line x1="120" y1="19" x2="120" y2="44" stroke="#6030b0" strokeWidth="0.7"/>
+                  <ellipse cx="113" cy="24" rx="6" ry="4" fill="white" opacity="0.18"/>
                 </g>
 
                 {/* LUNGS */}
                 <g className={`organ ${selectedPart === 'Lungs & Respiratory' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Lungs & Respiratory')}>
-                  {/* Left lung */}
-                  <path d="M68 92 Q56 98 55 122 Q54 146 62 156 Q70 163 78 158 Q85 151 84 128 Q83 102 76 92 Z" fill="#7eb8e8" stroke="#2563eb" strokeWidth="1.2" opacity="0.9"/>
-                  {/* Right lung */}
-                  <path d="M172 92 Q184 98 185 122 Q186 146 178 156 Q170 163 162 158 Q155 151 156 128 Q157 102 164 92 Z" fill="#7eb8e8" stroke="#2563eb" strokeWidth="1.2" opacity="0.9"/>
-                  {/* Trachea/bronchi */}
-                  <line x1="120" y1="84" x2="120" y2="100" stroke="#1d4ed8" strokeWidth="1.2"/>
-                  <path d="M120 100 Q100 106 80 116" fill="none" stroke="#1d4ed8" strokeWidth="1.1"/>
-                  <path d="M120 100 Q140 106 160 116" fill="none" stroke="#1d4ed8" strokeWidth="1.1"/>
+                  <path d="M72 116 Q62 122 61 148 Q60 170 70 178 Q80 184 86 174 Q90 162 88 138 Q86 114 78 110 Z" fill="url(#gradLung)" stroke="#2060c0" strokeWidth="1"/>
+                  <ellipse cx="70" cy="136" rx="7" ry="13" fill="white" opacity="0.14"/>
+                  <path d="M170 116 Q180 122 181 148 Q182 170 172 178 Q162 184 156 174 Q152 162 154 138 Q156 114 164 110 Z" fill="url(#gradLung)" stroke="#2060c0" strokeWidth="1"/>
+                  <ellipse cx="170" cy="136" rx="7" ry="13" fill="white" opacity="0.14"/>
+                  <line x1="120" y1="100" x2="120" y2="114" stroke="#1850a0" strokeWidth="1.8"/>
+                  <path d="M120 114 Q102 122 88 132" fill="none" stroke="#1850a0" strokeWidth="1.4"/>
+                  <path d="M120 114 Q138 122 154 132" fill="none" stroke="#1850a0" strokeWidth="1.4"/>
                 </g>
 
                 {/* HEART */}
                 <g className={`organ ${selectedPart === 'Heart & Cardiovascular' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Heart & Cardiovascular')}>
-                  <path d="M120 130 C115 120 100 120 100 134 C100 148 120 164 120 164 C120 164 140 148 140 134 C140 120 125 120 120 130 Z" fill="#e8615f" stroke="#b91c1c" strokeWidth="1.2"/>
-                  <path d="M114 123 Q110 114 116 108" fill="none" stroke="#b91c1c" strokeWidth="1.2"/>
+                  <path d="M123 145 C119 133 104 133 104 149 C104 165 123 181 123 181 C123 181 142 165 142 149 C142 133 127 133 123 145 Z" fill="#aa1010" opacity="0.3"/>
+                  <path d="M120 141 C116 129 100 129 100 146 C100 163 120 180 120 180 C120 180 140 163 140 146 C140 129 124 129 120 141 Z" fill="url(#gradHeart)" stroke="#c01010" strokeWidth="1"/>
+                  <ellipse cx="112" cy="140" rx="6" ry="8" fill="white" opacity="0.18"/>
+                  <path d="M115 134 Q110 124 116 116 Q122 110 128 116" fill="none" stroke="#c01010" strokeWidth="1.4"/>
                 </g>
 
                 {/* LIVER */}
                 <g className={`organ ${selectedPart === 'Liver & Metabolism' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Liver & Metabolism')}>
-                  <path d="M122 172 Q140 167 150 175 Q158 184 155 196 Q151 206 140 208 Q128 209 122 200 Q117 190 118 180 Z" fill="#c97a3a" stroke="#92400e" strokeWidth="1.2" opacity="0.92"/>
+                  <path d="M126 188 Q148 182 160 192 Q170 204 166 220 Q162 232 146 234 Q130 235 124 224 Q118 212 120 200 Z" fill="url(#gradLiver)" stroke="#904820" strokeWidth="1"/>
+                  <ellipse cx="138" cy="198" rx="11" ry="6" fill="white" opacity="0.16"/>
                 </g>
 
                 {/* STOMACH */}
                 <g className={`organ ${selectedPart === 'Stomach & Digestive' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Stomach & Digestive')}>
-                  <path d="M90 175 Q76 177 74 190 Q72 204 80 210 Q90 215 100 210 Q108 203 106 190 Q104 176 92 175 Z" fill="#f0b860" stroke="#b45309" strokeWidth="1.2" opacity="0.92"/>
+                  <path d="M82 186 Q68 188 66 204 Q64 220 74 226 Q86 230 96 224 Q104 216 102 202 Q100 186 86 186 Z" fill="url(#gradStomach)" stroke="#b07810" strokeWidth="1"/>
+                  <ellipse cx="82" cy="198" rx="9" ry="6" fill="white" opacity="0.18"/>
                 </g>
 
                 {/* KIDNEYS */}
                 <g className={`organ ${selectedPart === 'Kidneys & Renal' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Kidneys & Renal')}>
-                  <path d="M64 213 Q54 216 52 226 Q51 236 60 239 Q69 241 74 233 Q77 224 73 214 Z" fill="#9d7fd1" stroke="#6d28d9" strokeWidth="1.2" opacity="0.92"/>
-                  <path d="M176 213 Q186 216 188 226 Q189 236 180 239 Q171 241 166 233 Q163 224 167 214 Z" fill="#9d7fd1" stroke="#6d28d9" strokeWidth="1.2" opacity="0.92"/>
+                  <path d="M56 212 Q46 215 44 226 Q43 238 52 241 Q62 243 67 234 Q70 224 66 213 Z" fill="url(#gradKidney)" stroke="#5828b0" strokeWidth="1"/>
+                  <ellipse cx="55" cy="222" rx="5" ry="7" fill="white" opacity="0.18"/>
+                  <path d="M184 212 Q194 215 196 226 Q197 238 188 241 Q178 243 173 234 Q170 224 174 213 Z" fill="url(#gradKidney)" stroke="#5828b0" strokeWidth="1"/>
+                  <ellipse cx="185" cy="222" rx="5" ry="7" fill="white" opacity="0.18"/>
                 </g>
 
                 {/* INTESTINES */}
                 <g className={`organ ${selectedPart === 'Intestines & GI' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Intestines & GI')}>
-                  <path d="M88 218 Q76 222 75 232 Q74 242 82 246 Q92 249 100 244 Q108 238 106 228 Q104 218 92 218 Z" fill="#e07a9c" stroke="#be185d" strokeWidth="1.2" opacity="0.88"/>
-                  <path d="M108 220 Q118 222 120 232 Q120 242 112 246 Q102 249 96 244" fill="none" stroke="#be185d" strokeWidth="1"/>
-                  <path d="M120 232 Q132 234 140 244 Q146 252 138 258 Q130 262 122 256" fill="none" stroke="#be185d" strokeWidth="1"/>
-                  <path d="M80 248 Q78 256 86 260 Q100 264 120 262 Q140 260 148 254" fill="none" stroke="#be185d" strokeWidth="1"/>
+                  <path d="M82 238 Q68 243 68 256 Q68 267 80 271 Q92 273 98 264 Q104 255 98 244 Q92 236 82 238 Z" fill="url(#gradIntestine)" stroke="#c02870" strokeWidth="0.9"/>
+                  <path d="M100 240 Q112 242 114 254 Q114 266 104 270 Q94 272 90 264" fill="none" stroke="#c02870" strokeWidth="1.1"/>
+                  <path d="M114 252 Q124 255 126 265 Q126 273 118 276 Q110 278 104 270" fill="none" stroke="#c02870" strokeWidth="1.1"/>
+                  <path d="M72 268 Q78 274 100 276 Q122 274 130 268" fill="none" stroke="#c02870" strokeWidth="1.1"/>
+                  <ellipse cx="80" cy="248" rx="7" ry="5" fill="white" opacity="0.14"/>
                 </g>
 
-                {/* SKIN dots */}
+                {/* SKIN */}
                 <g className={`organ ${selectedPart === 'Skin & Dermal' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Skin & Dermal')}>
-                  <circle cx="50" cy="100" r="8" fill="#5cc99a" stroke="#059669" strokeWidth="1.2" opacity="0.9"/>
-                  <circle cx="190" cy="100" r="8" fill="#5cc99a" stroke="#059669" strokeWidth="1.2" opacity="0.9"/>
+                  <circle cx="46" cy="118" r="10" fill="#107050" opacity="0.3"/>
+                  <circle cx="44" cy="116" r="10" fill="url(#gradSkin)" stroke="#108040" strokeWidth="1"/>
+                  <circle cx="40" cy="112" r="3" fill="white" opacity="0.22"/>
+                  <circle cx="196" cy="118" r="10" fill="#107050" opacity="0.3"/>
+                  <circle cx="194" cy="116" r="10" fill="url(#gradSkin)" stroke="#108040" strokeWidth="1"/>
+                  <circle cx="190" cy="112" r="3" fill="white" opacity="0.22"/>
                 </g>
 
-                {/* BONES/MUSCLES */}
+                {/* BONES */}
                 <g className={`organ ${selectedPart === 'Bones & Muscles' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Bones & Muscles')}>
-                  <rect x="74" y="358" width="14" height="62" rx="5" fill="#c9bba0" stroke="#92835a" strokeWidth="1.2" opacity="0.9"/>
-                  <rect x="152" y="358" width="14" height="62" rx="5" fill="#c9bba0" stroke="#92835a" strokeWidth="1.2" opacity="0.9"/>
+                  <rect x="88" y="370" width="13" height="60" rx="5" fill="#887840" opacity="0.35"/>
+                  <rect x="86" y="368" width="13" height="60" rx="5" fill="url(#gradBone)" stroke="#908050" strokeWidth="1"/>
+                  <ellipse cx="91" cy="378" rx="4" ry="5" fill="white" opacity="0.18"/>
+                  <rect x="140" y="370" width="13" height="60" rx="5" fill="#887840" opacity="0.35"/>
+                  <rect x="142" y="368" width="13" height="60" rx="5" fill="url(#gradBone)" stroke="#908050" strokeWidth="1"/>
+                  <ellipse cx="147" cy="378" rx="4" ry="5" fill="white" opacity="0.18"/>
                 </g>
-
               </svg>
             </div>
             <div className="legend-hint">Tap an organ on the body<br />to view PM2.5/PM10 effects</div>
@@ -446,19 +470,41 @@ function App() {
                   <div className="who-note">
                     WHO safe annual limit for {pmType}: <strong>{WHO_SAFE_LIMIT[pmType]} µg/m³</strong>
                     {currentPMLevel > WHO_SAFE_LIMIT[pmType] && (
-                      <span className="who-exceeded"> — exceeded by {(currentPMLevel - WHO_SAFE_LIMIT[pmType])} µg/m³</span>
+                      <span className="who-exceeded"> — exceeded by {currentPMLevel - WHO_SAFE_LIMIT[pmType]} µg/m³</span>
                     )}
                   </div>
                   <div className="effects-list">
                     {effects.map((e, idx) => (
-                      <div key={idx} className="effect-row">
-                        <div className="effect-name">{e.name}</div>
-                        <div className="effect-desc">{e.desc}</div>
+                      <div key={idx} className={`effect-row ${expandedEffect === idx ? 'expanded' : ''}`} onClick={() => setExpandedEffect(expandedEffect === idx ? null : idx)}>
+                        <div className="effect-row-header">
+                          <div>
+                            <div className="effect-name">{e.name}</div>
+                            <div className="effect-desc">{e.desc}</div>
+                          </div>
+                          <span className="effect-toggle">{expandedEffect === idx ? '▲' : '▼'}</span>
+                        </div>
                         <div className="sev-dots">
                           {[...Array(5)].map((_, i) => (
                             <div key={i} className={`sev-dot ${i < e.severity ? 'on' : ''}`}></div>
                           ))}
                         </div>
+                        {expandedEffect === idx && (
+                          <div className="effect-expanded">
+                            {e.details && <div className="effect-detail-text">{e.details}</div>}
+                            {e.symptoms?.length > 0 && (
+                              <div className="effect-section">
+                                <div className="effect-section-title">🩺 Symptoms</div>
+                                <ul className="effect-list">{e.symptoms.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                              </div>
+                            )}
+                            {e.precautions?.length > 0 && (
+                              <div className="effect-section">
+                                <div className="effect-section-title">🛡️ Precautions</div>
+                                <ul className="effect-list precaution-list">{e.precautions.map((p, i) => <li key={i}>{p}</li>)}</ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -470,13 +516,13 @@ function App() {
               <div className="chart-card">
                 <h4>Severity breakdown</h4>
                 <div className="chart-wrap">
-                  <canvas ref={sevChartRef} role="img" aria-label="Bar chart of severity ratings"></canvas>
+                  <canvas ref={sevChartRef} role="img" aria-label="Severity chart"></canvas>
                 </div>
               </div>
               <div className="chart-card">
                 <h4>State pollution levels</h4>
                 <div className="chart-wrap">
-                  <canvas ref={stateChartRef} role="img" aria-label="Bar chart comparing pollution across states"></canvas>
+                  <canvas ref={stateChartRef} role="img" aria-label="State pollution chart"></canvas>
                 </div>
               </div>
             </div>
