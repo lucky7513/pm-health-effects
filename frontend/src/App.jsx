@@ -258,19 +258,25 @@ function App() {
             </div>
           </div>
           <div className="aqi-right">
-            <div className="aqi-bar-labels">
-              <span>Good</span><span>Moderate</span><span>Poor</span><span>Severe</span>
-            </div>
-            <div className="aqi-bar-track">
-              <div className="aqi-bar-marker" style={{ left: `${aqiPct}%` }}></div>
-            </div>
-            <div className="aqi-segments">
-              <div style={{ background: '#22c55e' }}></div>
-              <div style={{ background: '#84cc16' }}></div>
-              <div style={{ background: '#eab308' }}></div>
-              <div style={{ background: '#f97316' }}></div>
-              <div style={{ background: '#ef4444' }}></div>
-              <div style={{ background: '#7c3aed' }}></div>
+            <div className="aqi-bar-wrap">
+              <div className="aqi-bar-track">
+                <div className="aqi-bar-marker" style={{ left: `${aqiPct}%`, borderColor: aqiColor }}></div>
+              </div>
+              <div className="aqi-bar-labels">
+                {[
+                  { label: 'Good', color: '#22c55e' },
+                  { label: 'Satisfactory', color: '#84cc16' },
+                  { label: 'Moderate', color: '#eab308' },
+                  { label: 'Poor', color: '#f97316' },
+                  { label: 'Very Poor', color: '#ef4444' },
+                  { label: 'Severe', color: '#7c3aed' },
+                ].map((item) => (
+                  <div key={item.label} className="aqi-bar-label-item">
+                    <div className="aqi-bar-label-dot" style={{ background: item.color }}></div>
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="aqi-who">
               WHO safe limit for {pmType}: <strong>{WHO_SAFE_LIMIT[pmType]} µg/m³</strong>
@@ -533,4 +539,4 @@ function App() {
   )
 }
 
-export default App 
+export default App
