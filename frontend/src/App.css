@@ -621,3 +621,90 @@ body {
   margin-bottom: 10px;
   opacity: 0.5;
 }
+
+/* ===== EXPANDABLE EFFECT CARDS ===== */
+.effect-row {
+  cursor: pointer;
+}
+
+.effect-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.effect-toggle {
+  font-size: 11px;
+  color: #7a9988;
+  padding-top: 2px;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.effect-row.expanded {
+  border-left-color: #15803d;
+  background: linear-gradient(135deg, #f0faf4, #e8f5ec);
+}
+
+.effect-expanded {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #bfe0cc;
+  animation: fadeIn 0.3s ease;
+}
+
+.effect-detail-text {
+  font-size: 12.5px;
+  color: #3d6b52;
+  line-height: 1.7;
+  margin-bottom: 12px;
+  background: #f4faf6;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.effect-section {
+  margin-top: 10px;
+}
+
+.effect-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #14532d;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.effect-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.effect-list li {
+  font-size: 12.5px;
+  color: #5a7a68;
+  padding: 6px 10px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #d7ecdf;
+  line-height: 1.5;
+  position: relative;
+  padding-left: 22px;
+}
+
+.effect-list li::before {
+  content: '•';
+  position: absolute;
+  left: 9px;
+  color: #d97706;
+  font-weight: bold;
+}
+
+.precaution-list li::before {
+  content: '✓';
+  color: #15803d;
+}
