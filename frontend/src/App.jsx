@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import Chart from 'chart.js/auto'
+import jsPDF from 'jspdf'
 import './App.css'
 
 const API_BASE_URL = 'https://pm-health-effects.onrender.com'
@@ -125,6 +126,151 @@ function App() {
     setSelectedPart(null)
     setEffects([])
     setPage('login')
+  }
+
+  const downloadReport = () => {
+    const doc = new jsPDF()
+    const date = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    const whoLimit = pmType === 'PM2.5' ? 60 : 100
+    const exceeded = aqiVal - whoLimit
+
+    // Header background
+    doc.setFillColor(21, 128, 61)
+    doc.rect(0, 0, 210, 40, 'F')
+
+    // Title
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(22)
+    doc.setFont('helvetica', 'bold')
+    doc.text('PM Health Effects Report', 15, 18)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Air Pollution Health Risk Assessment', 15, 28)
+    doc.text(`Generated: ${date}`, 15, 36)
+
+    // User details box
+    doc.setFillColor(244, 250, 246)
+    doc.setDrawColor(215, 236, 223)
+    doc.roundedRect(10, 48, 190, 35, 3, 3, 'FD')
+    doc.setTextColor(20, 83, 45)
+    doc.setFontSize(13)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Patient Details', 15, 58)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.setTextColor(90, 122, 104)
+    doc.text(`Name: ${user?.name}`, 15, 67)
+    doc.text(`Age: ${user?.ageNum} years  |  Group: ${user?.age}`, 15, 74)
+    doc.text(`State: ${selectedState}  |  PM Type: ${pmType}`, 110, 67)
+    doc.text(`Organ: ${selectedPart || 'Not selected'}`, 110, 74)
+
+    // AQI box
+    doc.setFillColor(244, 250, 246)
+    doc.setDrawColor(215, 236, 223)
+    doc.roundedRect(10, 90, 190, 30, 3, 3, 'FD')
+    doc.setTextColor(20, 83, 45)
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Air Quality Index', 15, 100)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.setTextColor(90, 122, 104)
+    doc.text(`${pmType} Level: ${aqiVal} µg/m³  |  Category: ${aqiLabel}`, 15, 108)
+    doc.text(`WHO Safe Limit: ${whoLimit} µg/m³${exceeded > 0 ? `  |  Exceeded by: ${exceeded} µg/m³` : '  |  Within safe limit'}`, 15, 115)
+
+    // Effects section
+    if (effects.length > 0) {
+      doc.setFillColor(21, 128, 61)
+      doc.rect(10, 127, 190, 10, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.text(`Health Effects — ${selectedPart}`, 15, 134)
+
+      let y = 145
+      effects.forEach((effect, idx) => {
+        // Check if we need a new page
+        if (y > 260) {
+          doc.addPage()
+          y = 20
+        }
+
+        // Effect card background
+        doc.setFillColor(249, 253, 251)
+        doc.setDrawColor(215, 236, 223)
+        const cardHeight = 12 + (effect.symptoms?.length || 0) * 5 + (effect.precautions?.length || 0) * 5 + 20
+        doc.roundedRect(10, y - 5, 190, Math.min(cardHeight, 60), 2, 2, 'FD')
+
+        // Effect name and severity
+        doc.setTextColor(20, 83, 45)
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.text(`${idx + 1}. ${effect.name}`, 15, y + 3)
+
+        // Severity dots
+        const dots = '●'.repeat(effect.severity) + '○'.repeat(5 - effect.severity)
+        doc.setTextColor(217, 119, 6)
+        doc.setFontSize(10)
+        doc.text(dots, 160, y + 3)
+
+        // Description
+        doc.setTextColor(90, 122, 104)
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.text(effect.desc, 15, y + 10)
+        y += 16
+
+        // Symptoms
+        if (effect.symptoms?.length > 0) {
+          doc.setTextColor(20, 83, 45)
+          doc.setFontSize(9)
+          doc.setFont('helvetica', 'bold')
+          doc.text('Symptoms:', 15, y)
+          y += 5
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(90, 122, 104)
+          effect.symptoms.slice(0, 3).forEach(s => {
+            if (y > 270) { doc.addPage(); y = 20 }
+            doc.text(`• ${s}`, 18, y)
+            y += 5
+          })
+        }
+
+        // Precautions
+        if (effect.precautions?.length > 0) {
+          doc.setTextColor(21, 128, 61)
+          doc.setFontSize(9)
+          doc.setFont('helvetica', 'bold')
+          doc.text('Precautions:', 15, y)
+          y += 5
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(90, 122, 104)
+          effect.precautions.slice(0, 3).forEach(p => {
+            if (y > 270) { doc.addPage(); y = 20 }
+            doc.text(`✓ ${p}`, 18, y)
+            y += 5
+          })
+        }
+        y += 8
+      })
+    }
+
+    // Footer on last page
+    const pageCount = doc.internal.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFillColor(244, 250, 246)
+      doc.rect(0, 285, 210, 15, 'F')
+      doc.setTextColor(90, 122, 104)
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'normal')
+      doc.text('Data Source: CPCB 2023 | PM Health Effects App', 15, 292)
+      doc.text(`Page ${i} of ${pageCount}`, 185, 292)
+    }
+
+    // Save
+    const filename = `PM-Health-Report-${user?.name}-${selectedState}-${date}.pdf`
+    doc.save(filename)
   }
 
   const renderSevChart = (effectsData) => {
@@ -454,10 +600,13 @@ function App() {
                 <>
                   <div className="part-header">
                     <div className="part-icon">{bodyPartIcons[selectedPart]}</div>
-                    <div>
+                    <div style={{flex:1}}>
                       <div className="part-title">{selectedPart}</div>
                       <div className="part-sub">{pmType} effects in {selectedState}</div>
                     </div>
+                    <button className="download-btn" onClick={downloadReport}>
+                      ⬇️ Download Report
+                    </button>
                   </div>
                   <div className="stats-row">
                     <div className="stat-box">
