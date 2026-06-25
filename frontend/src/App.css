@@ -887,3 +887,164 @@ body {
 .download-btn:active {
   transform: translateY(0);
 }
+
+/* ===== MOBILE IMPROVEMENTS ===== */
+@media (max-width: 600px) {
+
+  /* Dashboard padding */
+  .dash {
+    padding: 0.8rem;
+  }
+
+  /* Top row stack vertically */
+  .top-row {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+    gap: 10px;
+  }
+
+  .welcome h2 { font-size: 16px; }
+
+  .controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .state-select {
+    flex: 1;
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .logout-btn {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  /* AQI card stack vertically */
+  .aqi-card {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .aqi-left {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .aqi-value { font-size: 26px; }
+
+  .aqi-right { width: 100%; }
+
+  .aqi-bar-labels {
+    font-size: 9px;
+  }
+
+  /* Main grid single column */
+  .main-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.8rem;
+  }
+
+  /* Body panel horizontal layout */
+  .body-panel {
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .body-panel h3 {
+    width: 100%;
+  }
+
+  .body-svg-wrap svg {
+    width: 130px !important;
+  }
+
+  .legend-hint {
+    flex: 1;
+    font-size: 11px;
+    margin-top: 0;
+    align-self: center;
+  }
+
+  /* Detail card */
+  .detail-card {
+    padding: 1rem;
+  }
+
+  /* Part header wrap */
+  .part-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .part-title { font-size: 15px; }
+
+  .download-btn {
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+    margin-top: 4px;
+  }
+
+  /* Stats row 3 cols still but smaller */
+  .stats-row {
+    gap: 6px;
+  }
+
+  .stat-value { font-size: 16px; }
+  .stat-label { font-size: 9px; }
+
+  /* Charts stack vertically */
+  .charts-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .chart-wrap { height: 160px; }
+
+  /* Effect rows */
+  .effect-name { font-size: 13px; }
+  .effect-desc { font-size: 12px; }
+
+  /* Login card */
+  .login-card {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+
+  .login-card h1 { font-size: 20px; }
+}
+
+/* Medium screens (tablets) */
+@media (max-width: 850px) and (min-width: 601px) {
+  .dash { padding: 1rem; }
+
+  .aqi-card {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .aqi-left {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .body-svg-wrap svg {
+    width: 180px !important;
+  }
+
+  .part-header { flex-wrap: wrap; }
+
+  .download-btn {
+    width: 100%;
+    margin-top: 6px;
+  }
+}
