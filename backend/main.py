@@ -543,15 +543,17 @@ health_database = {
 }
 
 state_pollution_data = {
-    "Delhi": {"PM2.5": 180, "PM10": 250},
-    "Maharashtra": {"PM2.5": 95, "PM10": 150},
-    "Uttar Pradesh": {"PM2.5": 140, "PM10": 200},
-    "Punjab": {"PM2.5": 110, "PM10": 170},
-    "Rajasthan": {"PM2.5": 125, "PM10": 185},
-    "Tamil Nadu": {"PM2.5": 65, "PM10": 95},
-    "Karnataka": {"PM2.5": 58, "PM10": 88},
-    "Gujarat": {"PM2.5": 85, "PM10": 135},
-    "West Bengal": {"PM2.5": 92, "PM10": 148}
+    # Source: CPCB NAMP + IQAir World Air Quality Report 2023
+    # Annual average concentrations in µg/m³
+    "Delhi": {"PM2.5": 102, "PM10": 226},           # CPCB 2023, most polluted capital
+    "Uttar Pradesh": {"PM2.5": 91, "PM10": 185},    # Lucknow/Kanpur average, CPCB 2023
+    "Punjab": {"PM2.5": 72, "PM10": 152},            # Amritsar/Ludhiana, CPCB 2023
+    "Rajasthan": {"PM2.5": 68, "PM10": 163},         # Jaipur avg, CPCB 2023
+    "West Bengal": {"PM2.5": 62, "PM10": 130},       # Kolkata avg, CPCB 2023
+    "Gujarat": {"PM2.5": 57, "PM10": 118},           # Ahmedabad avg, CPCB 2023
+    "Maharashtra": {"PM2.5": 52, "PM10": 105},       # Mumbai avg, CPCB 2023
+    "Tamil Nadu": {"PM2.5": 38, "PM10": 72},         # Chennai avg, CPCB 2023
+    "Karnataka": {"PM2.5": 26, "PM10": 52},          # Bengaluru avg, CPCB 2023 (AQI~54)
 }
 
 @app.get("/")
