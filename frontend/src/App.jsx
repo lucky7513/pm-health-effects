@@ -208,10 +208,12 @@ function App() {
         doc.text(`${idx + 1}. ${effect.name}`, 15, y + 3)
 
         // Severity dots
-        const dots = '●'.repeat(effect.severity) + '○'.repeat(5 - effect.severity)
+        const filled = effect.severity
+        const empty = 5 - effect.severity
+        const dots = '[' + '★'.repeat(0) + '*'.repeat(filled) + '-'.repeat(empty) + ']  Severity: ' + filled + '/5'
         doc.setTextColor(217, 119, 6)
         doc.setFontSize(10)
-        doc.text(dots, 160, y + 3)
+        doc.text(`Severity: ${filled}/5`, 160, y + 3)
 
         // Description
         doc.setTextColor(90, 122, 104)
@@ -247,7 +249,7 @@ function App() {
           doc.setTextColor(90, 122, 104)
           effect.precautions.slice(0, 3).forEach(p => {
             if (y > 270) { doc.addPage(); y = 20 }
-            doc.text(`✓ ${p}`, 18, y)
+            doc.text(`>> ${p}`, 18, y)
             y += 5
           })
         }
