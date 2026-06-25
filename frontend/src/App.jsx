@@ -356,7 +356,7 @@ function App() {
               </div>
               <div className="form-group">
                 <label>Your age</label>
-                <input type="number" name="age" placeholder="e.g., 25" min="1" max="120" required />
+                <input type="number" name="age" placeholder="e.g., 18" min="1" max="80" required />
               </div>
               <div className="form-group">
                 <label>Your state</label>
