@@ -352,7 +352,7 @@ function App() {
             <form onSubmit={handleLogin}>
               <div className="form-group">
                 <label>Your name</label>
-                <input type="text" name="name" placeholder="e.g., Rahul Sharma" required />
+                <input type="text" name="name" placeholder="e.g., Lucky" required />
               </div>
               <div className="form-group">
                 <label>Your age</label>
