@@ -3,6 +3,7 @@ import axios from 'axios'
 import Chart from 'chart.js/auto'
 import jsPDF from 'jspdf'
 import './App.css'
+import SplashCursor from './SplashCursor'
 
 const API_BASE_URL = 'https://pm-health-effects.onrender.com'
 
@@ -345,6 +346,7 @@ function App() {
     return (
       <div className="app">
         <div className="login-page">
+<SplashCursor />
           <div className="login-card">
             <div className="login-logo">🌬️</div>
             <h1>PM Health Effects</h1>
