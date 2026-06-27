@@ -3,8 +3,6 @@ import axios from 'axios'
 import Chart from 'chart.js/auto'
 import jsPDF from 'jspdf'
 import './App.css'
-import Galaxy from './Galaxy'
-
 const API_BASE_URL = 'https://pm-health-effects.onrender.com'
 
 const bodyPartIcons = {
@@ -346,7 +344,6 @@ function App() {
     return (
       <div className="app">
         <div className="login-page">
-<Galaxy starSpeed={0.5} density={1} hueShift={140} speed={1} glowIntensity={0.3} saturation={0} mouseRepulsion={true} repulsionStrength={2} twinkleIntensity={0.3} rotationSpeed={0.1} transparent={true} />
           <div className="login-card">
             <div className="login-logo">🌬️</div>
             <h1>PM Health Effects</h1>
