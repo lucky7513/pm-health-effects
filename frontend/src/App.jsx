@@ -368,12 +368,12 @@ function App() {
             <form onSubmit={handleLogin}>
               <div className="form-group">
                 <label>Your name</label>
-                <input type="text" name="name" placeholder="e.g., Rahul Sharma" required />
+                <input type="text" name="name" placeholder="e.g., Lucky Pandey" required />
               </div>
               <div className="form-row">
                 <div className="form-group">
                   <label>Your age</label>
-                  <input type="number" name="age" placeholder="e.g., 25" min="1" max="120" required />
+                  <input type="number" name="age" placeholder="e.g., 18" min="1" max="120" required />
                 </div>
                 <div className="form-group">
                   <label>Gender</label>
