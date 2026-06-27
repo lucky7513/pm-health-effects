@@ -75,7 +75,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e8f5ec 0%, #d4ecdc 50%, #c8e6d4 100%);
+  background: transparent;
   animation: fadeIn 0.5s ease;
   position: relative;
   overflow: hidden;
