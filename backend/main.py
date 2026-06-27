@@ -561,7 +561,7 @@ def read_root():
     return {"message": "PM2.5 & PM10 Health Effects API", "version": "2.0"}
 
 @app.get("/health-effects/{body_part}")
-def get_health_effects(body_part: str, pm_type: str = "PM2.5", age: str = None, state: str = None):
+def get_health_effects(body_part: str, pm_type: str = "PM2.5", age: str = None, state: str = None, activity: str = None):
     if body_part not in health_database:
         return {"error": f"Body part '{body_part}' not found"}
     if pm_type not in ["PM2.5", "PM10"]:
@@ -581,9 +581,15 @@ def get_health_effects(body_part: str, pm_type: str = "PM2.5", age: str = None, 
         pollution_level = state_pollution_data[state].get(pm_type, 100)
         state_multiplier = min(pollution_level / 100, 1.5)
 
+    activity_multiplier = {
+        "Low": 0.8,
+        "Medium": 1.0,
+        "High": 1.3
+    }.get(activity, 1.0)
+
     adjusted_effects = []
     for effect in effects:
-        adjusted_severity = min(int(effect["severity"] * age_multiplier * state_multiplier), 5)
+        adjusted_severity = min(int(effect["severity"] * age_multiplier * state_multiplier * activity_multiplier), 5)
         adjusted_effects.append({
             "name": effect["name"],
             "desc": effect["desc"],
@@ -598,6 +604,7 @@ def get_health_effects(body_part: str, pm_type: str = "PM2.5", age: str = None, 
         "pm_type": pm_type,
         "age": age,
         "state": state,
+        "activity": activity,
         "effects": adjusted_effects,
         "count": len(adjusted_effects)
     }
@@ -618,5 +625,4 @@ def get_all_states():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
- 
+    uvicorn.run(app, host="0.0.0.0", port=8000)

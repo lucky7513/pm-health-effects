@@ -62,7 +62,7 @@ function App() {
 
   useEffect(() => {
     if (selectedPart && user) {
-      fetchEffects(selectedPart, pmType, user.age, selectedState)
+      fetchEffects(selectedPart, pmType, user.age, selectedState, user.activity)
     }
     // eslint-disable-next-line
   }, [pmType, selectedState, user, selectedPart])
@@ -93,10 +93,10 @@ function App() {
     }
   }
 
-  const fetchEffects = async (part, pm, age, state) => {
+  const fetchEffects = async (part, pm, age, state, activity) => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ pm_type: pm, age: age || '', state: state || '' })
+      const params = new URLSearchParams({ pm_type: pm, age: age || '', state: state || '', activity: activity || 'Low' })
       const response = await axios.get(`${API_BASE_URL}/health-effects/${encodeURIComponent(part)}?${params}`)
       setEffects(response.data.effects)
       setTimeout(() => renderSevChart(response.data.effects), 50)
@@ -132,7 +132,7 @@ function App() {
   const handleSelectBodyPart = (part) => {
     setSelectedPart(part)
     setExpandedEffect(null)
-    if (user) fetchEffects(part, pmType, user.age, selectedState)
+    if (user) fetchEffects(part, pmType, user.age, selectedState, user.activity)
   }
 
   const handlePMChange = (pm) => setPmType(pm)
@@ -368,12 +368,12 @@ function App() {
             <form onSubmit={handleLogin}>
               <div className="form-group">
                 <label>Your name</label>
-                <input type="text" name="name" placeholder="e.g., Lucky Pandey" required />
+                <input type="text" name="name" placeholder="e.g., Rahul Sharma" required />
               </div>
               <div className="form-row">
                 <div className="form-group">
                   <label>Your age</label>
-                  <input type="number" name="age" placeholder="e.g., 18" min="1" max="120" required />
+                  <input type="number" name="age" placeholder="e.g., 25" min="1" max="120" required />
                 </div>
                 <div className="form-group">
                   <label>Gender</label>
@@ -431,9 +431,6 @@ function App() {
             <p style={{fontSize:'11px', color:'#7a9988', marginTop:'2px'}}>Activity: {user?.activity}</p>
           </div>
           <div className="controls">
-            <select className="state-select" value={selectedState} onChange={(e) => setSelectedState(e.target.value)}>
-              {states.map((state) => <option key={state} value={state}>{state}</option>)}
-            </select>
             <div className="pm-toggle">
               <button className={`pm-btn pm25 ${pmType === 'PM2.5' ? 'active' : ''}`} onClick={() => handlePMChange('PM2.5')}>PM2.5</button>
               <button className={`pm-btn pm10 ${pmType === 'PM10' ? 'active' : ''}`} onClick={() => handlePMChange('PM10')}>PM10</button>
