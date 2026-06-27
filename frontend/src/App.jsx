@@ -29,6 +29,19 @@ function App() {
   const [statePollution, setStatePollution] = useState({})
   const [loading, setLoading] = useState(false)
   const [expandedEffect, setExpandedEffect] = useState(null)
+  const [loginState, setLoginState] = useState('')
+
+  const citiesByState = {
+    "Delhi": ["New Delhi", "Dwarka", "Rohini", "Saket", "Noida (NCR)", "Gurgaon (NCR)"],
+    "Uttar Pradesh": ["Lucknow", "Kanpur", "Agra", "Varanasi", "Allahabad", "Meerut", "Ghaziabad"],
+    "Punjab": ["Amritsar", "Ludhiana", "Chandigarh", "Jalandhar", "Patiala", "Bathinda"],
+    "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Ajmer", "Bikaner"],
+    "West Bengal": ["Kolkata", "Howrah", "Durgapur", "Asansol", "Siliguri", "Bardhaman"],
+    "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar", "Bhavnagar"],
+    "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik", "Aurangabad", "Thane"],
+    "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Salem", "Tiruchirappalli", "Tirunelveli"],
+    "Karnataka": ["Bengaluru", "Mysuru", "Hubli", "Mangaluru", "Belagavi", "Kalaburagi"],
+  }
 
   const sevChartRef = useRef(null)
   const stateChartRef = useRef(null)
@@ -373,14 +386,19 @@ function App() {
                 </div>
               </div>
               <div className="form-group">
-                <label>City / District</label>
-                <input type="text" name="city" placeholder="e.g., New Delhi" required />
-              </div>
-              <div className="form-group">
                 <label>Your state</label>
-                <select name="state" required>
+                <select name="state" required onChange={(e) => setLoginState(e.target.value)}>
                   <option value="">Select your state</option>
                   {states.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Your city</label>
+                <select name="city" required disabled={!loginState}>
+                  <option value="">{loginState ? 'Select your city' : 'Select state first'}</option>
+                  {loginState && citiesByState[loginState]?.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
                 </select>
               </div>
               <div className="form-group">
