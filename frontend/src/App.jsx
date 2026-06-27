@@ -3,7 +3,7 @@ import axios from 'axios'
 import Chart from 'chart.js/auto'
 import jsPDF from 'jspdf'
 import './App.css'
-import Waves from './Waves'
+
 const API_BASE_URL = 'https://pm-health-effects.onrender.com'
 
 const bodyPartIcons = {
@@ -100,7 +100,10 @@ function App() {
     const name = e.target.name.value
     const ageNum = parseInt(e.target.age.value)
     const state = e.target.state.value
-    if (!name || !ageNum || !state) {
+    const gender = e.target.gender.value
+    const city = e.target.city.value
+    const activity = e.target.activity.value
+    if (!name || !ageNum || !state || !gender || !city || !activity) {
       alert('Please fill in all fields')
       return
     }
@@ -109,7 +112,7 @@ function App() {
     else if (ageNum <= 19) ageGroup = 'Adolescents (13-19)'
     else if (ageNum >= 66) ageGroup = 'Elderly (65+)'
     setSelectedState(state)
-    setUser({ name, age: ageGroup, ageNum })
+    setUser({ name, age: ageGroup, ageNum, gender, city, activity })
     setPage('dashboard')
   }
 
@@ -160,9 +163,9 @@ function App() {
     doc.setFontSize(10)
     doc.setTextColor(90, 122, 104)
     doc.text(`Name: ${user?.name}`, 15, 67)
-    doc.text(`Age: ${user?.ageNum} years  |  Group: ${user?.age}`, 15, 74)
-    doc.text(`State: ${selectedState}  |  PM Type: ${pmType}`, 110, 67)
-    doc.text(`Organ: ${selectedPart || 'Not selected'}`, 110, 74)
+    doc.text(`Age: ${user?.ageNum} years  |  Group: ${user?.age}  |  Gender: ${user?.gender}`, 15, 74)
+    doc.text(`City: ${user?.city}  |  State: ${selectedState}  |  PM Type: ${pmType}`, 15, 81)
+    doc.text(`Activity Level: ${user?.activity}  |  Organ: ${selectedPart || 'Not selected'}`, 15, 88)
 
     // AQI box
     doc.setFillColor(244, 250, 246)
@@ -344,9 +347,7 @@ function App() {
   if (page === 'login') {
     return (
       <div className="app">
-      <div className="login-page">
-  <Waves lineColor="#15803d" backgroundColor="transparent" waveSpeedX={0.02} waveSpeedY={0.01} waveAmpX={40} waveAmpY={20} friction={0.9} tension={0.01} maxCursorMove={120} xGap={12} yGap={36} />
-  <div className="login-card" style={{position:'relative', zIndex:10}}>
+        <div className="login-page">
           <div className="login-card">
             <div className="login-logo">🌬️</div>
             <h1>PM Health Effects</h1>
@@ -354,17 +355,41 @@ function App() {
             <form onSubmit={handleLogin}>
               <div className="form-group">
                 <label>Your name</label>
-                <input type="text" name="name" placeholder="e.g., Lucky" required />
+                <input type="text" name="name" placeholder="e.g., Rahul Sharma" required />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Your age</label>
+                  <input type="number" name="age" placeholder="e.g., 25" min="1" max="120" required />
+                </div>
+                <div className="form-group">
+                  <label>Gender</label>
+                  <select name="gender" required>
+                    <option value="">Select</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
               </div>
               <div className="form-group">
-                <label>Your age</label>
-                <input type="number" name="age" placeholder="e.g., 18" min="1" max="100" required />
+                <label>City / District</label>
+                <input type="text" name="city" placeholder="e.g., New Delhi" required />
               </div>
               <div className="form-group">
                 <label>Your state</label>
                 <select name="state" required>
                   <option value="">Select your state</option>
                   {states.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Physical activity level</label>
+                <select name="activity" required>
+                  <option value="">Select activity level</option>
+                  <option value="Low">🪑 Low (mostly indoors/sedentary)</option>
+                  <option value="Medium">🚶 Medium (moderate outdoor activity)</option>
+                  <option value="High">🏃 High (frequent outdoor exercise)</option>
                 </select>
               </div>
               <button type="submit" className="login-btn">Check My Health Risk →</button>
@@ -384,7 +409,8 @@ function App() {
         <div className="top-row">
           <div className="welcome">
             <h2>Welcome, {user?.name}</h2>
-            <p>{user?.age} · Age {user?.ageNum}</p>
+            <p>{user?.age} · {user?.gender} · {user?.city}</p>
+            <p style={{fontSize:'11px', color:'#7a9988', marginTop:'2px'}}>Activity: {user?.activity}</p>
           </div>
           <div className="controls">
             <select className="state-select" value={selectedState} onChange={(e) => setSelectedState(e.target.value)}>

@@ -75,11 +75,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e8f5ec;
+  background: linear-gradient(135deg, #e8f5ec 0%, #d4ecdc 50%, #c8e6d4 100%);
   animation: fadeIn 0.5s ease;
-  position: relative;
-  overflow: hidden;
 }
+
 .login-card {
   background: white;
   padding: 2.5rem;
@@ -1047,5 +1046,18 @@ body {
   .download-btn {
     width: 100%;
     margin-top: 6px;
+  }
+}
+
+/* ===== FORM ROW ===== */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 400px) {
+  .form-row {
+    grid-template-columns: 1fr;
   }
 }
