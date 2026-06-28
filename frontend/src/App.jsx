@@ -30,6 +30,65 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [expandedEffect, setExpandedEffect] = useState(null)
   const [loginState, setLoginState] = useState('')
+  const [weather, setWeather] = useState(null)
+
+  const cityCoordinates = {
+    "New Delhi": { lat: 28.6, lon: 77.2 },
+    "Dwarka": { lat: 28.59, lon: 77.06 },
+    "Rohini": { lat: 28.73, lon: 77.11 },
+    "Saket": { lat: 28.52, lon: 77.21 },
+    "Noida (NCR)": { lat: 28.54, lon: 77.39 },
+    "Gurgaon (NCR)": { lat: 28.46, lon: 77.03 },
+    "Lucknow": { lat: 26.85, lon: 80.95 },
+    "Kanpur": { lat: 26.46, lon: 80.33 },
+    "Agra": { lat: 27.18, lon: 78.02 },
+    "Varanasi": { lat: 25.32, lon: 83.0 },
+    "Allahabad": { lat: 25.45, lon: 81.84 },
+    "Meerut": { lat: 28.98, lon: 77.71 },
+    "Ghaziabad": { lat: 28.67, lon: 77.45 },
+    "Amritsar": { lat: 31.63, lon: 74.87 },
+    "Ludhiana": { lat: 30.9, lon: 75.85 },
+    "Chandigarh": { lat: 30.74, lon: 76.78 },
+    "Jalandhar": { lat: 31.33, lon: 75.58 },
+    "Patiala": { lat: 30.34, lon: 76.38 },
+    "Bathinda": { lat: 30.21, lon: 74.95 },
+    "Jaipur": { lat: 26.92, lon: 75.82 },
+    "Jodhpur": { lat: 26.29, lon: 73.02 },
+    "Udaipur": { lat: 24.58, lon: 73.68 },
+    "Kota": { lat: 25.18, lon: 75.85 },
+    "Ajmer": { lat: 26.45, lon: 74.64 },
+    "Bikaner": { lat: 28.02, lon: 73.31 },
+    "Kolkata": { lat: 22.57, lon: 88.36 },
+    "Howrah": { lat: 22.59, lon: 88.31 },
+    "Durgapur": { lat: 23.48, lon: 87.32 },
+    "Asansol": { lat: 23.68, lon: 86.98 },
+    "Siliguri": { lat: 26.72, lon: 88.43 },
+    "Bardhaman": { lat: 23.23, lon: 87.86 },
+    "Ahmedabad": { lat: 23.03, lon: 72.58 },
+    "Surat": { lat: 21.17, lon: 72.83 },
+    "Vadodara": { lat: 22.31, lon: 73.18 },
+    "Rajkot": { lat: 22.3, lon: 70.8 },
+    "Gandhinagar": { lat: 23.22, lon: 72.65 },
+    "Bhavnagar": { lat: 21.77, lon: 72.15 },
+    "Mumbai": { lat: 19.08, lon: 72.88 },
+    "Pune": { lat: 18.52, lon: 73.86 },
+    "Nagpur": { lat: 21.15, lon: 79.09 },
+    "Nashik": { lat: 19.99, lon: 73.79 },
+    "Aurangabad": { lat: 19.88, lon: 75.34 },
+    "Thane": { lat: 19.22, lon: 72.98 },
+    "Chennai": { lat: 13.08, lon: 80.27 },
+    "Coimbatore": { lat: 11.02, lon: 76.97 },
+    "Madurai": { lat: 9.93, lon: 78.12 },
+    "Salem": { lat: 11.67, lon: 78.15 },
+    "Tiruchirappalli": { lat: 10.79, lon: 78.7 },
+    "Tirunelveli": { lat: 8.73, lon: 77.7 },
+    "Bengaluru": { lat: 12.97, lon: 77.59 },
+    "Mysuru": { lat: 12.3, lon: 76.64 },
+    "Hubli": { lat: 15.36, lon: 75.12 },
+    "Mangaluru": { lat: 12.87, lon: 74.88 },
+    "Belagavi": { lat: 15.85, lon: 74.5 },
+    "Kalaburagi": { lat: 17.33, lon: 76.82 },
+  }
 
   const citiesByState = {
     "Delhi": ["New Delhi", "Dwarka", "Rohini", "Saket", "Noida (NCR)", "Gurgaon (NCR)"],
@@ -93,7 +152,57 @@ function App() {
     }
   }
 
-  const fetchEffects = async (part, pm, age, state, activity) => {
+  const fetchWeather = async (city) => {
+    try {
+      const coords = cityCoordinates[city]
+      if (!coords) return
+      const res = await axios.get(
+        `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,windspeed_10m,weathercode&timezone=Asia/Kolkata`
+      )
+      const c = res.data.current
+      const temp = c.temperature_2m
+      const humidity = c.relative_humidity_2m
+      const wind = c.windspeed_10m
+      const code = c.weathercode
+
+      // Weather condition
+      let condition = 'Clear'
+      let icon = '☀️'
+      if (code >= 61) { condition = 'Rainy'; icon = '🌧️' }
+      else if (code >= 45) { condition = 'Foggy'; icon = '🌫️' }
+      else if (code >= 3) { condition = 'Cloudy'; icon = '☁️' }
+      else if (code >= 1) { condition = 'Partly Cloudy'; icon = '⛅' }
+
+      // Combined risk calculation
+      let riskScore = 0
+      let riskFactors = []
+
+      if (temp > 38) { riskScore += 2; riskFactors.push('Extreme heat increases PM absorption') }
+      else if (temp > 32) { riskScore += 1; riskFactors.push('High temperature worsens PM effects') }
+
+      if (humidity < 30) { riskScore += 2; riskFactors.push('Dry air carries more PM particles') }
+      else if (humidity > 80) { riskScore += 1; riskFactors.push('High humidity traps pollutants') }
+
+      if (wind < 5) { riskScore += 2; riskFactors.push('Low wind — PM not dispersing') }
+      else if (wind > 20) { riskScore -= 1; riskFactors.push('Strong wind disperses PM') }
+
+      if (code >= 61) { riskScore -= 2; riskFactors.push('Rain washes PM from air') }
+      if (code >= 45 && code < 50) { riskScore += 2; riskFactors.push('Fog traps PM near ground') }
+
+      const riskLevel = riskScore <= 0 ? 'Low' : riskScore <= 2 ? 'Moderate' : 'High'
+      const riskColor = riskScore <= 0 ? '#22c55e' : riskScore <= 2 ? '#eab308' : '#ef4444'
+
+      // Best time advice
+      let bestTime = 'Morning (6-8 AM)'
+      if (temp > 35) bestTime = 'Evening after 6 PM'
+      if (code >= 61) bestTime = 'After rain clears'
+      if (wind > 15) bestTime = 'Now — wind is dispersing PM'
+
+      setWeather({ temp, humidity, wind, condition, icon, riskLevel, riskColor, riskFactors, bestTime })
+    } catch (err) {
+      console.error('Weather fetch error:', err)
+    }
+  }
     setLoading(true)
     try {
       const params = new URLSearchParams({ pm_type: pm, age: age || '', state: state || '', activity: activity || 'Low' })
@@ -126,6 +235,7 @@ function App() {
     else if (ageNum >= 66) ageGroup = 'Elderly (65+)'
     setSelectedState(state)
     setUser({ name, age: ageGroup, ageNum, gender, city, activity })
+    fetchWeather(city)
     setPage('dashboard')
   }
 
@@ -495,7 +605,43 @@ function App() {
           </div>
         </div>
 
-        {/* MAIN GRID */}
+        {/* WEATHER CARD */}
+        {weather && (
+          <div className="weather-card">
+            <div className="weather-left">
+              <div className="weather-title">🌡️ Live Weather — {user?.city}</div>
+              <div className="weather-stats">
+                <div className="weather-stat">
+                  <span className="weather-icon">{weather.icon}</span>
+                  <span className="weather-val">{weather.temp}°C</span>
+                  <span className="weather-lbl">{weather.condition}</span>
+                </div>
+                <div className="weather-stat">
+                  <span className="weather-icon">💧</span>
+                  <span className="weather-val">{weather.humidity}%</span>
+                  <span className="weather-lbl">Humidity</span>
+                </div>
+                <div className="weather-stat">
+                  <span className="weather-icon">💨</span>
+                  <span className="weather-val">{weather.wind} km/h</span>
+                  <span className="weather-lbl">Wind</span>
+                </div>
+              </div>
+            </div>
+            <div className="weather-right">
+              <div className="weather-risk-title">Combined Weather + AQI Risk</div>
+              <div className="weather-risk-badge" style={{ background: weather.riskColor + '22', color: weather.riskColor, border: `1px solid ${weather.riskColor}` }}>
+                ● {weather.riskLevel} Risk
+              </div>
+              <div className="weather-factors">
+                {weather.riskFactors.map((f, i) => (
+                  <div key={i} className="weather-factor">• {f}</div>
+                ))}
+              </div>
+              <div className="weather-best-time">⏰ Best time outside: <strong>{weather.bestTime}</strong></div>
+            </div>
+          </div>
+        )}
         <div className="main-grid">
           <div className="body-panel">
             <h3>Select organ</h3>
