@@ -194,16 +194,33 @@ function App() {
     doc.text(`${pmType} Level: ${aqiVal} µg/m³  |  Category: ${aqiLabel}`, 15, 108)
     doc.text(`WHO Safe Limit: ${whoLimit} µg/m³${exceeded > 0 ? `  |  Exceeded by: ${exceeded} µg/m³` : '  |  Within safe limit'}`, 15, 115)
 
+    // Methodology box
+    doc.setFillColor(220, 242, 227)
+    doc.setDrawColor(21, 128, 61)
+    doc.roundedRect(10, 126, 190, 52, 3, 3, 'FD')
+    doc.setTextColor(20, 83, 45)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('How This Report Was Generated', 15, 136)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(60, 100, 70)
+    doc.text('Severity Score = Base Severity x Age Multiplier x State Pollution Multiplier x Activity Multiplier', 15, 145)
+    doc.text(`> Age Multiplier: ${user?.age === 'Children (0-12)' || user?.age === 'Elderly (65+)' ? '1.5x (high risk group)' : '1.0x (standard)'}  — Children & Elderly are more vulnerable`, 15, 153)
+    doc.text(`> State Multiplier: Based on CPCB 2023 data for ${selectedState} (${aqiVal} µg/m³)`, 15, 160)
+    doc.text(`> Activity Multiplier: ${user?.activity === 'High' ? '1.3x' : user?.activity === 'Low' ? '0.8x' : '1.0x'} — ${user?.activity} activity level (${user?.activity === 'High' ? 'more outdoor exposure' : user?.activity === 'Low' ? 'less outdoor exposure' : 'moderate exposure'})`, 15, 167)
+    doc.text('> Data Source: CPCB NAMP 2023 | WHO Air Quality Guidelines 2021 | Medical Research', 15, 174)
+
     // Effects section
     if (effects.length > 0) {
       doc.setFillColor(21, 128, 61)
-      doc.rect(10, 127, 190, 10, 'F')
+      doc.rect(10, 184, 190, 10, 'F')
       doc.setTextColor(255, 255, 255)
       doc.setFontSize(11)
       doc.setFont('helvetica', 'bold')
-      doc.text(`Health Effects — ${selectedPart}`, 15, 134)
+      doc.text(`Health Effects — ${selectedPart}`, 15, 191)
 
-      let y = 145
+      let y = 202
       effects.forEach((effect, idx) => {
         // Check if we need a new page
         if (y > 260) {
@@ -368,12 +385,12 @@ function App() {
             <form onSubmit={handleLogin}>
               <div className="form-group">
                 <label>Your name</label>
-                <input type="text" name="name" placeholder="e.g., Lucky Pandey" required />
+                <input type="text" name="name" placeholder="e.g., Rahul Sharma" required />
               </div>
               <div className="form-row">
                 <div className="form-group">
                   <label>Your age</label>
-                  <input type="number" name="age" placeholder="e.g., 18" min="1" max="120" required />
+                  <input type="number" name="age" placeholder="e.g., 25" min="1" max="120" required />
                 </div>
                 <div className="form-group">
                   <label>Gender</label>
