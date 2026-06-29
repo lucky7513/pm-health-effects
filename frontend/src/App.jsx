@@ -31,6 +31,7 @@ function App() {
   const [expandedEffect, setExpandedEffect] = useState(null)
   const [loginState, setLoginState] = useState('')
   const [weather, setWeather] = useState(null)
+  const [liveData, setLiveData] = useState(null)
 
   const cityCoordinates = {
     "New Delhi": { lat: 28.6, lon: 77.2 },
@@ -201,7 +202,53 @@ function App() {
     }
   }
 
-  const fetchEffects = async (part, pm, age, state, activity) => {
+  const fetchLiveData = async (city) => {
+    try {
+      // Map city names to OpenAQ city names
+      const cityMap = {
+        "New Delhi": "Delhi", "Dwarka": "Delhi", "Rohini": "Delhi",
+        "Saket": "Delhi", "Noida (NCR)": "Delhi", "Gurgaon (NCR)": "Delhi",
+        "Mumbai": "Mumbai", "Pune": "Pune", "Nagpur": "Nagpur",
+        "Chennai": "Chennai", "Coimbatore": "Coimbatore",
+        "Bengaluru": "Bengaluru", "Mysuru": "Mysore",
+        "Kolkata": "Kolkata", "Lucknow": "Lucknow",
+        "Kanpur": "Kanpur", "Varanasi": "Varanasi",
+        "Ahmedabad": "Ahmedabad", "Surat": "Surat",
+        "Jaipur": "Jaipur", "Jodhpur": "Jodhpur",
+        "Amritsar": "Amritsar", "Ludhiana": "Ludhiana",
+        "Chandigarh": "Chandigarh",
+      }
+      const aqCity = cityMap[city] || city
+      const res = await axios.get(
+        `https://api.openaq.org/v2/latest?city=${encodeURIComponent(aqCity)}&limit=20`,
+        { headers: { 'Accept': 'application/json' } }
+      )
+      const results = res.data.results
+      if (!results || results.length === 0) {
+        setLiveData({ available: false })
+        return
+      }
+
+      let pm25 = null, pm10 = null, updatedAt = null
+      results.forEach(r => {
+        r.measurements?.forEach(m => {
+          if (m.parameter === 'pm25' && m.value > 0) { pm25 = Math.round(m.value); updatedAt = m.lastUpdated }
+          if (m.parameter === 'pm10' && m.value > 0) { pm10 = Math.round(m.value) }
+        })
+      })
+
+      if (!pm25 && !pm10) {
+        setLiveData({ available: false })
+        return
+      }
+
+      const timeAgo = updatedAt ? Math.round((Date.now() - new Date(updatedAt)) / 60000) : null
+      setLiveData({ available: true, pm25, pm10, city: aqCity, timeAgo })
+    } catch (err) {
+      console.error('Live data error:', err)
+      setLiveData({ available: false })
+    }
+  }
     setLoading(true)
     try {
       const params = new URLSearchParams({ pm_type: pm, age: age || '', state: state || '', activity: activity || 'Low' })
@@ -235,6 +282,7 @@ function App() {
     setSelectedState(state)
     setUser({ name, age: ageGroup, ageNum, gender, city, activity })
     fetchWeather(city)
+    fetchLiveData(city)
     setPage('dashboard')
   }
 
@@ -576,7 +624,52 @@ function App() {
           </div>
         </div>
 
-        {/* WEATHER CARD */}
+        {/* LIVE PM DATA CARD */}
+        {liveData && (
+          <div className="live-card">
+            {liveData.available ? (
+              <>
+                <div className="live-left">
+                  <div className="live-title">
+                    <span className="live-dot"></span>
+                    LIVE DATA — {liveData.city}
+                  </div>
+                  {liveData.timeAgo !== null && (
+                    <div className="live-updated">Updated {liveData.timeAgo} min ago · Source: OpenAQ / CPCB</div>
+                  )}
+                </div>
+                <div className="live-right">
+                  {liveData.pm25 && (
+                    <div className="live-stat">
+                      <div className="live-stat-label">PM2.5</div>
+                      <div className="live-stat-value" style={{ color: liveData.pm25 > 60 ? '#ef4444' : '#22c55e' }}>
+                        {liveData.pm25} <span className="live-stat-unit">µg/m³</span>
+                      </div>
+                      <div className="live-stat-badge" style={{ background: liveData.pm25 > 120 ? '#fee2e2' : liveData.pm25 > 60 ? '#fef3c7' : '#dcf2e3', color: liveData.pm25 > 120 ? '#dc2626' : liveData.pm25 > 60 ? '#d97706' : '#15803d' }}>
+                        {liveData.pm25 > 120 ? 'Poor' : liveData.pm25 > 60 ? 'Moderate' : 'Good'}
+                      </div>
+                    </div>
+                  )}
+                  {liveData.pm10 && (
+                    <div className="live-stat">
+                      <div className="live-stat-label">PM10</div>
+                      <div className="live-stat-value" style={{ color: liveData.pm10 > 100 ? '#ef4444' : '#22c55e' }}>
+                        {liveData.pm10} <span className="live-stat-unit">µg/m³</span>
+                      </div>
+                      <div className="live-stat-badge" style={{ background: liveData.pm10 > 200 ? '#fee2e2' : liveData.pm10 > 100 ? '#fef3c7' : '#dcf2e3', color: liveData.pm10 > 200 ? '#dc2626' : liveData.pm10 > 100 ? '#d97706' : '#15803d' }}>
+                        {liveData.pm10 > 200 ? 'Poor' : liveData.pm10 > 100 ? 'Moderate' : 'Good'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="live-unavailable">
+                <span>📡</span> Live data not available for {user?.city} — showing CPCB 2023 annual averages
+              </div>
+            )}
+          </div>
+        )}
         {weather && (
           <div className="weather-card">
             <div className="weather-left">
@@ -856,6 +949,5 @@ function App() {
       </div>
     </div>
   )
-}
 
 export default App
