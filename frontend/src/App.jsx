@@ -165,7 +165,6 @@ function App() {
       const wind = c.windspeed_10m
       const code = c.weathercode
 
-      // Weather condition
       let condition = 'Clear'
       let icon = '☀️'
       if (code >= 61) { condition = 'Rainy'; icon = '🌧️' }
@@ -173,7 +172,6 @@ function App() {
       else if (code >= 3) { condition = 'Cloudy'; icon = '☁️' }
       else if (code >= 1) { condition = 'Partly Cloudy'; icon = '⛅' }
 
-      // Combined risk calculation
       let riskScore = 0
       let riskFactors = []
 
@@ -192,7 +190,6 @@ function App() {
       const riskLevel = riskScore <= 0 ? 'Low' : riskScore <= 2 ? 'Moderate' : 'High'
       const riskColor = riskScore <= 0 ? '#22c55e' : riskScore <= 2 ? '#eab308' : '#ef4444'
 
-      // Best time advice
       let bestTime = 'Morning (6-8 AM)'
       if (temp > 35) bestTime = 'Evening after 6 PM'
       if (code >= 61) bestTime = 'After rain clears'
@@ -203,7 +200,8 @@ function App() {
       console.error('Weather fetch error:', err)
     }
   }
-   const fetchEffects = async (part, pm, age, state, activity) => {
+
+  const fetchEffects = async (part, pm, age, state, activity) => {
     setLoading(true)
     try {
       const params = new URLSearchParams({ pm_type: pm, age: age || '', state: state || '', activity: activity || 'Low' })
@@ -252,6 +250,7 @@ function App() {
     setUser(null)
     setSelectedPart(null)
     setEffects([])
+    setWeather(null)
     setPage('login')
   }
 
@@ -261,11 +260,8 @@ function App() {
     const whoLimit = pmType === 'PM2.5' ? 60 : 100
     const exceeded = aqiVal - whoLimit
 
-    // Header background
     doc.setFillColor(21, 128, 61)
     doc.rect(0, 0, 210, 40, 'F')
-
-    // Title
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(22)
     doc.setFont('helvetica', 'bold')
@@ -275,10 +271,9 @@ function App() {
     doc.text('Air Pollution Health Risk Assessment', 15, 28)
     doc.text(`Generated: ${date}`, 15, 36)
 
-    // User details box
     doc.setFillColor(244, 250, 246)
     doc.setDrawColor(215, 236, 223)
-    doc.roundedRect(10, 48, 190, 35, 3, 3, 'FD')
+    doc.roundedRect(10, 48, 190, 38, 3, 3, 'FD')
     doc.setTextColor(20, 83, 45)
     doc.setFontSize(13)
     doc.setFont('helvetica', 'bold')
@@ -291,21 +286,19 @@ function App() {
     doc.text(`City: ${user?.city}  |  State: ${selectedState}  |  PM Type: ${pmType}`, 15, 81)
     doc.text(`Activity Level: ${user?.activity}  |  Organ: ${selectedPart || 'Not selected'}`, 15, 88)
 
-    // AQI box
     doc.setFillColor(244, 250, 246)
     doc.setDrawColor(215, 236, 223)
-    doc.roundedRect(10, 90, 190, 30, 3, 3, 'FD')
+    doc.roundedRect(10, 93, 190, 28, 3, 3, 'FD')
     doc.setTextColor(20, 83, 45)
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
-    doc.text('Air Quality Index', 15, 100)
+    doc.text('Air Quality Index', 15, 103)
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
     doc.setTextColor(90, 122, 104)
-    doc.text(`${pmType} Level: ${aqiVal} µg/m³  |  Category: ${aqiLabel}`, 15, 108)
-    doc.text(`WHO Safe Limit: ${whoLimit} µg/m³${exceeded > 0 ? `  |  Exceeded by: ${exceeded} µg/m³` : '  |  Within safe limit'}`, 15, 115)
+    doc.text(`${pmType} Level: ${aqiVal} µg/m³  |  Category: ${aqiLabel}`, 15, 111)
+    doc.text(`WHO Safe Limit: ${whoLimit} µg/m³${exceeded > 0 ? `  |  Exceeded by: ${exceeded} µg/m³` : '  |  Within safe limit'}`, 15, 118)
 
-    // Methodology box
     doc.setFillColor(220, 242, 227)
     doc.setDrawColor(21, 128, 61)
     doc.roundedRect(10, 126, 190, 52, 3, 3, 'FD')
@@ -319,10 +312,9 @@ function App() {
     doc.text('Severity Score = Base Severity x Age Multiplier x State Pollution Multiplier x Activity Multiplier', 15, 145)
     doc.text(`> Age Multiplier: ${user?.age === 'Children (0-12)' || user?.age === 'Elderly (65+)' ? '1.5x (high risk group)' : '1.0x (standard)'}  — Children & Elderly are more vulnerable`, 15, 153)
     doc.text(`> State Multiplier: Based on CPCB 2023 data for ${selectedState} (${aqiVal} µg/m³)`, 15, 160)
-    doc.text(`> Activity Multiplier: ${user?.activity === 'High' ? '1.3x' : user?.activity === 'Low' ? '0.8x' : '1.0x'} — ${user?.activity} activity level (${user?.activity === 'High' ? 'more outdoor exposure' : user?.activity === 'Low' ? 'less outdoor exposure' : 'moderate exposure'})`, 15, 167)
+    doc.text(`> Activity Multiplier: ${user?.activity === 'High' ? '1.3x' : user?.activity === 'Low' ? '0.8x' : '1.0x'} — ${user?.activity} activity level`, 15, 167)
     doc.text('> Data Source: CPCB NAMP 2023 | WHO Air Quality Guidelines 2021 | Medical Research', 15, 174)
 
-    // Effects section
     if (effects.length > 0) {
       doc.setFillColor(21, 128, 61)
       doc.rect(10, 184, 190, 10, 'F')
@@ -333,40 +325,23 @@ function App() {
 
       let y = 202
       effects.forEach((effect, idx) => {
-        // Check if we need a new page
-        if (y > 260) {
-          doc.addPage()
-          y = 20
-        }
-
-        // Effect card background
+        if (y > 260) { doc.addPage(); y = 20 }
         doc.setFillColor(249, 253, 251)
         doc.setDrawColor(215, 236, 223)
-        const cardHeight = 12 + (effect.symptoms?.length || 0) * 5 + (effect.precautions?.length || 0) * 5 + 20
-        doc.roundedRect(10, y - 5, 190, Math.min(cardHeight, 60), 2, 2, 'FD')
-
-        // Effect name and severity
+        doc.roundedRect(10, y - 5, 190, 55, 2, 2, 'FD')
         doc.setTextColor(20, 83, 45)
         doc.setFontSize(11)
         doc.setFont('helvetica', 'bold')
         doc.text(`${idx + 1}. ${effect.name}`, 15, y + 3)
-
-        // Severity dots
-        const filled = effect.severity
-        const empty = 5 - effect.severity
-        const dots = '[' + '★'.repeat(0) + '*'.repeat(filled) + '-'.repeat(empty) + ']  Severity: ' + filled + '/5'
         doc.setTextColor(217, 119, 6)
         doc.setFontSize(10)
-        doc.text(`Severity: ${filled}/5`, 160, y + 3)
-
-        // Description
+        doc.text(`Severity: ${effect.severity}/5`, 160, y + 3)
         doc.setTextColor(90, 122, 104)
         doc.setFontSize(9)
         doc.setFont('helvetica', 'normal')
         doc.text(effect.desc, 15, y + 10)
         y += 16
 
-        // Symptoms
         if (effect.symptoms?.length > 0) {
           doc.setTextColor(20, 83, 45)
           doc.setFontSize(9)
@@ -382,7 +357,6 @@ function App() {
           })
         }
 
-        // Precautions
         if (effect.precautions?.length > 0) {
           doc.setTextColor(21, 128, 61)
           doc.setFontSize(9)
@@ -401,7 +375,6 @@ function App() {
       })
     }
 
-    // Footer on last page
     const pageCount = doc.internal.getNumberOfPages()
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i)
@@ -414,7 +387,6 @@ function App() {
       doc.text(`Page ${i} of ${pageCount}`, 185, 292)
     }
 
-    // Save
     const filename = `PM-Health-Report-${user?.name}-${selectedState}-${date}.pdf`
     doc.save(filename)
   }
@@ -479,8 +451,6 @@ function App() {
   const avgSeverity = effects.length ? (effects.reduce((s, e) => s + e.severity, 0) / effects.length).toFixed(1) : 0
   const currentPMLevel = statePollution[selectedState]
     ? (pmType === 'PM2.5' ? statePollution[selectedState]['PM2.5'] : statePollution[selectedState]['PM10']) : '-'
-
-  // AQI meter values
   const aqiVal = statePollution[selectedState]?.[pmType] || 0
   const aqiPct = Math.min((aqiVal / (pmType === 'PM2.5' ? 500 : 600)) * 100, 100)
   const { label: aqiLabel, color: aqiColor } = getAQIInfo(aqiVal, pmType)
@@ -643,6 +613,8 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* MAIN GRID */}
         <div className="main-grid">
           <div className="body-panel">
             <h3>Select organ</h3>
@@ -708,7 +680,6 @@ function App() {
                 <path d="M117 54 Q120 60 123 54" fill="none" stroke="#b07030" strokeWidth="0.9"/>
                 <path d="M113 64 Q120 69 127 64" fill="none" stroke="#b07030" strokeWidth="0.9"/>
 
-                {/* BRAIN */}
                 <g className={`organ ${selectedPart === 'Brain & Head' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Brain & Head')}>
                   <ellipse cx="122" cy="34" rx="17" ry="13" fill="#6b3fbb" opacity="0.3"/>
                   <ellipse cx="120" cy="32" rx="18" ry="14" fill="url(#gradBrain)" stroke="#7030c0" strokeWidth="1"/>
@@ -718,7 +689,6 @@ function App() {
                   <ellipse cx="113" cy="24" rx="6" ry="4" fill="white" opacity="0.18"/>
                 </g>
 
-                {/* LUNGS */}
                 <g className={`organ ${selectedPart === 'Lungs & Respiratory' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Lungs & Respiratory')}>
                   <path d="M72 116 Q62 122 61 148 Q60 170 70 178 Q80 184 86 174 Q90 162 88 138 Q86 114 78 110 Z" fill="url(#gradLung)" stroke="#2060c0" strokeWidth="1"/>
                   <ellipse cx="70" cy="136" rx="7" ry="13" fill="white" opacity="0.14"/>
@@ -729,7 +699,6 @@ function App() {
                   <path d="M120 114 Q138 122 154 132" fill="none" stroke="#1850a0" strokeWidth="1.4"/>
                 </g>
 
-                {/* HEART */}
                 <g className={`organ ${selectedPart === 'Heart & Cardiovascular' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Heart & Cardiovascular')}>
                   <path d="M123 145 C119 133 104 133 104 149 C104 165 123 181 123 181 C123 181 142 165 142 149 C142 133 127 133 123 145 Z" fill="#aa1010" opacity="0.3"/>
                   <path d="M120 141 C116 129 100 129 100 146 C100 163 120 180 120 180 C120 180 140 163 140 146 C140 129 124 129 120 141 Z" fill="url(#gradHeart)" stroke="#c01010" strokeWidth="1"/>
@@ -737,19 +706,16 @@ function App() {
                   <path d="M115 134 Q110 124 116 116 Q122 110 128 116" fill="none" stroke="#c01010" strokeWidth="1.4"/>
                 </g>
 
-                {/* LIVER */}
                 <g className={`organ ${selectedPart === 'Liver & Metabolism' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Liver & Metabolism')}>
                   <path d="M126 188 Q148 182 160 192 Q170 204 166 220 Q162 232 146 234 Q130 235 124 224 Q118 212 120 200 Z" fill="url(#gradLiver)" stroke="#904820" strokeWidth="1"/>
                   <ellipse cx="138" cy="198" rx="11" ry="6" fill="white" opacity="0.16"/>
                 </g>
 
-                {/* STOMACH */}
                 <g className={`organ ${selectedPart === 'Stomach & Digestive' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Stomach & Digestive')}>
                   <path d="M82 186 Q68 188 66 204 Q64 220 74 226 Q86 230 96 224 Q104 216 102 202 Q100 186 86 186 Z" fill="url(#gradStomach)" stroke="#b07810" strokeWidth="1"/>
                   <ellipse cx="82" cy="198" rx="9" ry="6" fill="white" opacity="0.18"/>
                 </g>
 
-                {/* KIDNEYS */}
                 <g className={`organ ${selectedPart === 'Kidneys & Renal' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Kidneys & Renal')}>
                   <path d="M56 212 Q46 215 44 226 Q43 238 52 241 Q62 243 67 234 Q70 224 66 213 Z" fill="url(#gradKidney)" stroke="#5828b0" strokeWidth="1"/>
                   <ellipse cx="55" cy="222" rx="5" ry="7" fill="white" opacity="0.18"/>
@@ -757,7 +723,6 @@ function App() {
                   <ellipse cx="185" cy="222" rx="5" ry="7" fill="white" opacity="0.18"/>
                 </g>
 
-                {/* INTESTINES */}
                 <g className={`organ ${selectedPart === 'Intestines & GI' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Intestines & GI')}>
                   <path d="M82 238 Q68 243 68 256 Q68 267 80 271 Q92 273 98 264 Q104 255 98 244 Q92 236 82 238 Z" fill="url(#gradIntestine)" stroke="#c02870" strokeWidth="0.9"/>
                   <path d="M100 240 Q112 242 114 254 Q114 266 104 270 Q94 272 90 264" fill="none" stroke="#c02870" strokeWidth="1.1"/>
@@ -766,7 +731,6 @@ function App() {
                   <ellipse cx="80" cy="248" rx="7" ry="5" fill="white" opacity="0.14"/>
                 </g>
 
-                {/* SKIN */}
                 <g className={`organ ${selectedPart === 'Skin & Dermal' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Skin & Dermal')}>
                   <circle cx="46" cy="118" r="10" fill="#107050" opacity="0.3"/>
                   <circle cx="44" cy="116" r="10" fill="url(#gradSkin)" stroke="#108040" strokeWidth="1"/>
@@ -776,7 +740,6 @@ function App() {
                   <circle cx="190" cy="112" r="3" fill="white" opacity="0.22"/>
                 </g>
 
-                {/* BONES */}
                 <g className={`organ ${selectedPart === 'Bones & Muscles' ? 'selected' : ''}`} onClick={() => handleSelectBodyPart('Bones & Muscles')}>
                   <rect x="88" y="370" width="13" height="60" rx="5" fill="#887840" opacity="0.35"/>
                   <rect x="86" y="368" width="13" height="60" rx="5" fill="url(#gradBone)" stroke="#908050" strokeWidth="1"/>
@@ -813,9 +776,7 @@ function App() {
                       <div className="part-title">{selectedPart}</div>
                       <div className="part-sub">{pmType} effects in {selectedState}</div>
                     </div>
-                    <button className="download-btn" onClick={downloadReport}>
-                      ⬇️ Download Report
-                    </button>
+                    <button className="download-btn" onClick={downloadReport}>⬇️ Download Report</button>
                   </div>
                   <div className="stats-row">
                     <div className="stat-box">
@@ -897,4 +858,4 @@ function App() {
   )
 }
 
-export default Appf
+export default App
