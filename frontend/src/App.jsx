@@ -203,6 +203,7 @@ function App() {
       console.error('Weather fetch error:', err)
     }
   }
+   const fetchEffects = async (part, pm, age, state, activity) => {
     setLoading(true)
     try {
       const params = new URLSearchParams({ pm_type: pm, age: age || '', state: state || '', activity: activity || 'Low' })
@@ -896,4 +897,4 @@ function App() {
   )
 }
 
-export default App
+export default Appf
