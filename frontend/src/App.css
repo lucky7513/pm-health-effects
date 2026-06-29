@@ -1280,3 +1280,71 @@ body {
     gap: 1.5rem;
   }
 }
+
+/* ===== LOGIN ANIMATION ===== */
+.login-page {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, #0a1a0e 0%, #0f2918 40%, #0a1f10 100%) !important;
+}
+
+.login-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.login-card {
+  position: relative;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4) !important;
+}
+
+.login-card h1 {
+  color: #a8f0c0 !important;
+}
+
+.login-card p {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.login-card label {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.login-card input,
+.login-card select {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+}
+
+.login-card input::placeholder {
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.login-card input:focus,
+.login-card select:focus {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15) !important;
+}
+
+.login-card select option {
+  background: #0f2918;
+  color: white;
+}
+
+.login-btn {
+  background: linear-gradient(135deg, #15803d, #22c55e) !important;
+}
+
+.login-footer {
+  color: rgba(255, 255, 255, 0.4) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}

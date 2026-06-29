@@ -505,10 +505,88 @@ function App() {
   const aqiPct = Math.min((aqiVal / (pmType === 'PM2.5' ? 500 : 600)) * 100, 100)
   const { label: aqiLabel, color: aqiColor } = getAQIInfo(aqiVal, pmType)
 
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    let animId
+    let particles = []
+
+    const resize = () => {
+      canvas.width = canvas.offsetWidth
+      canvas.height = canvas.offsetHeight
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    class Particle {
+      reset() {
+        this.x = Math.random() * canvas.width
+        this.y = Math.random() * canvas.height
+        this.r = Math.random() * 2 + 0.5
+        this.vx = (Math.random() - 0.5) * 0.4
+        this.vy = -Math.random() * 0.6 - 0.2
+        this.alpha = Math.random() * 0.6 + 0.2
+        this.color = Math.random() > 0.5 ? '#22c55e' : '#4ade80'
+      }
+      constructor() { this.reset() }
+      update() {
+        this.x += this.vx
+        this.y += this.vy
+        this.alpha -= 0.002
+        if (this.y < 0 || this.alpha <= 0) this.reset()
+      }
+      draw() {
+        ctx.beginPath()
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2)
+        ctx.fillStyle = this.color
+        ctx.globalAlpha = this.alpha
+        ctx.fill()
+        ctx.globalAlpha = 1
+      }
+    }
+
+    for (let i = 0; i < 120; i++) particles.push(new Particle())
+
+    const rings = Array.from({ length: 4 }, (_, i) => ({
+      r: 80 + i * 70, angle: i * Math.PI / 6, speed: 0.003 + i * 0.001
+    }))
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      const cx = canvas.width / 2, cy = canvas.height / 2
+      rings.forEach(ring => {
+        ring.angle += ring.speed
+        ctx.beginPath()
+        ctx.arc(cx, cy, ring.r, 0, Math.PI * 2)
+        ctx.strokeStyle = 'rgba(34,197,94,0.07)'
+        ctx.lineWidth = 1
+        ctx.stroke()
+        const dx = cx + Math.cos(ring.angle) * ring.r
+        const dy = cy + Math.sin(ring.angle) * ring.r
+        ctx.beginPath()
+        ctx.arc(dx, dy, 3, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(74,222,128,0.8)'
+        ctx.fill()
+      })
+      particles.forEach(p => { p.update(); p.draw() })
+      animId = requestAnimationFrame(draw)
+    }
+    draw()
+
+    return () => {
+      cancelAnimationFrame(animId)
+      window.removeEventListener('resize', resize)
+    }
+  }, [page])
+
   if (page === 'login') {
     return (
       <div className="app">
         <div className="login-page">
+          <canvas ref={canvasRef} className="login-canvas"></canvas>
           <div className="login-card">
             <div className="login-logo">🌬️</div>
             <h1>PM Health Effects</h1>
