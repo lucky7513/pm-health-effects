@@ -249,6 +249,8 @@ function App() {
       setLiveData({ available: false })
     }
   }
+
+  const fetchEffects = async (part, pm, age, state, activity) => {
     setLoading(true)
     try {
       const params = new URLSearchParams({ pm_type: pm, age: age || '', state: state || '', activity: activity || 'Low' })
@@ -949,5 +951,6 @@ function App() {
       </div>
     </div>
   )
+}
 
 export default App
